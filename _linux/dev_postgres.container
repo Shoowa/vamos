@@ -1,0 +1,20 @@
+[Unit]
+Description=Launch Postgres 18 with native UUIDv7
+
+[Container]
+Image=docker.io/library/postgres:18beta2-alpine3.22
+ContainerName=postgres
+Environment=POSTGRES_PASSWORD=password
+Environment=POSTGRES_USERNAME=postgres
+Environment=POSTGRES_HOST_AUTH_METHOD=trust
+PublishPort=5432:5432
+Volume=/data/postgres:/var/lib/postgresql/18/docker
+Volume=/data/setup/setup_db1.sql:/docker-entrypoint-initdb.d/setup_db1.sql
+PidsLimit=100
+
+[Service]
+Restart=on-failure
+RestartSec=10
+
+[Install]
+RequiredBy=databases.target

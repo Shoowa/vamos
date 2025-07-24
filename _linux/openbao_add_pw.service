@@ -1,0 +1,14 @@
+[Unit]
+Description=Add a credential to OpenBao
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+Restart=on-failure
+RestartSec=5
+RemainAfterExit=yes
+ExecStart=/usr/bin/sleep 5
+ExecStart=/usr/bin/curl -H "X-Vault-Token: token" \
+    -H "Content-Type: application/json" \
+    --request POST --data '{"data": {"password": "OpenBao123"}}' \
+    http://localhost:8200/v1/secret/data/dev-postgres-test

@@ -1,0 +1,18 @@
+[Unit]
+Description=Launch an open source secrets warehouse.
+DefaultDependencies=no
+Before=openbao_add_pw.service
+Requires=openbao_add_pw.service
+
+[Container]
+Image=quay.io/openbao/openbao:2.3
+ContainerName=openbao
+Environment=BAO_DEV_ROOT_TOKEN_ID="token"
+PublishPort=8200:8200
+PidsLimit=50
+
+[Service]
+Restart=always
+
+[Install]
+RequiredBy=secrets.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Launch CouchDB
+DefaultDependencies=no
+Before=couchdb%i_add_topics.service
+Requires=couchdb%i_add_topics.service
+
+[Container]
+Image=docker.io/library/couchdb:3.5
+ContainerName=couchdb%i
+Environment=COUCHDB_PASSWORD=password
+Environment=COUCHDB_USER=tester
+PublishPort=598%i:5984
+Volume=/data/couchdb%i:/opt/couchdb/data
+
+[Service]
+Restart=on-failure
+RestartSec=10
+
+[Install]
+RequiredBy=databases.target

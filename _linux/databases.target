@@ -1,0 +1,7 @@
+[Unit]
+Description=A group of databases
+Requires=dev_postgres.service dev_couchdb@1.service
+Before=dev_postgres.service dev_couchdb@1.service
+
+[Install]
+RequiredBy=basic.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Add a database to CouchDB #1
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+Restart=on-failure
+RestartSec=10
+RemainAfterExit=yes
+Environment="COUCHDB=http://tester:password@localhost:598"
+ExecStart=/usr/bin/sleep 5
+ExecStart=/usr/bin/curl -X PUT ${COUCHDB}1/_users
+ExecStart=/usr/bin/curl -X PUT ${COUCHDB}1/_replicator
+ExecStart=/usr/bin/curl -X PUT ${COUCHDB}1/topic1
+ExecStart=/usr/bin/curl -X PUT ${COUCHDB}1/topic2
+ExecStart=/usr/bin/curl -X PUT ${COUCHDB}1/topic3
