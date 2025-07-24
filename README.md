@@ -91,7 +91,7 @@ containers in both _Docker_ and _podman_.
 Description=Launch Postgres 18 with native UUIDv7
 
 [Container]
-Image=docker.io/library/postgres:18beta1-alpine3.22
+Image=docker.io/library/postgres:18beta2-alpine3.22
 ContainerName=postgres
 Environment=POSTGRES_PASSWORD=password
 Environment=POSTGRES_USERNAME=postgres
@@ -102,10 +102,11 @@ Volume=/data/setup/setup_db1.sql:/docker-entrypoint-initdb.d/setup_db1.sql
 PidsLimit=100
 
 [Service]
-Restart=always
+Restart=on-failure
+RestartSec=10
 
 [Install]
-WantedBy=databases.target
+RequiredBy=databases.target
 ```
 
 The *_testdata/setup_db1.sql* file will be copied from the project on the host to
