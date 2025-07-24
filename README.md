@@ -31,14 +31,14 @@ instance in a container.
 All you need is an installation of _podman_. Postgres will need a minute to
 start.
 ```bash
-~/example $ make podman_create_vm
-~/example $ podman ps -a
+~/vamos $ make podman_create_vm
+~/vamos $ podman ps -a
 ```
 
 Instead of using _podman_ commands to manipulate the containers directly, we can
 use _systemD_ inside the Linux virtual machine to start and stop containers.
 ```bash
-~/example $ podman machine ssh dev_vamos "systemctl --user status dev_postgres"
+~/vamos $ podman machine ssh dev_vamos "systemctl --user status dev_postgres"
 ● dev_postgres.service - Launch Postgres 18 with native UUIDv7
      Loaded: loaded (/var/home/core/.config/containers/systemd/dev_postgres.container; generated)
     Drop-In: /usr/lib/systemd/user/service.d
@@ -69,7 +69,7 @@ use _systemD_ inside the Linux virtual machine to start and stop containers.
 Connect to the database named *test_data* in the containerized Postgres instance
 from the MacOS host.
 ```bash
-~/example $ psql -h localhost -U tester -d test_data
+~/vamos $ psql -h localhost -U tester -d test_data
 ```
 
 ### Postgres Database
@@ -135,6 +135,63 @@ _journalD_.
 The extension _.service_ is excluded from the commands for brevity.
 
 
+### Logs
+Information about the logger.
+
+#### Configuration
+Logging is configured as _debug_ in development or as _warn_ in production.
+```yaml
+# internal/config/dev.yml
+---
+logger:
+  level: debug
+```
+
+The level is read in _logging.go_.
+```go
+// internal/logging/logging.go
+package logging
+
+func configure(cfg *config.Config) *slog.HandlerOptions {
+	logLevel := &slog.LevelVar{}
+	if cfg.Logger.Level == "debug" {
+		logLevel.Set(slog.LevelDebug)
+	} else {
+		logLevel.Set(slog.LevelWarn)
+	}
+
+	opts := &slog.HandlerOptions{Level: logLevel}
+	return opts
+}
+```
+
+The primary logger is configured to include two details that can aid anyone
+debugging an incident in production. The version of the language, and the
+version of the application. Every child logger inherits these details.
+```go
+// internal/logging/logging.go
+package logging
+
+func CreateLogger(cfg *config.Config) *slog.Logger {
+	goVersion := slog.String("lang", runtime.Version())
+	appVersion := slog.String("app", config.AppVersion)
+	group := slog.Group("version", goVersion, appVersion)
+
+	opts := configure(cfg)
+	handler := slog.NewJSONHandler(os.Stdout, opts)
+	logger := slog.New(handler).With(group)
+
+	slog.SetDefault(logger)
+	return logger
+}
+```
+
+This can be observed during startup.
+```bash
+~/vamos $ go build -v -ldflags="-s -X 'vamos/internal/config.AppVersion=v.0.0.0' "
+~/vamos $ APP_ENV="DEV" ./vamos
+{"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
+```
 
 
 [^p1]: https://podman.io/docs/installation#macos
