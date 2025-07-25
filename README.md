@@ -135,6 +135,46 @@ _journalD_.
 ```
 The extension _.service_ is excluded from the commands for brevity.
 
+## Database Tooling
+A couple of CLI tools that won't be imported into the application.
+```bash
+~/vamos $ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+~/vamos $ go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+```
+
+### Database Migration
+The CLI tool _migrate_ creates numbered _.sql_ files that we can fill in
+with SQL commands. Then it applies them in numbered order to a Postgres
+database.[^d1]
+
+Create a _.sql_ file that will hold the commands to create a table named
+_authors_.
+```bash
+~/vamos $ migrate create -ext sql -dir sqlc/migrations/first -seq create_authors
+~/vamos $ tree sqlc/migrations/first
+sqlc/migrations/first
+├── 000001_create_authors.down.sql
+├── 000001_create_authors.up.sql
+```
+In _000001_create_authors.up.sql_, write the following SQL commands:
+```sql
+CREATE TABLE IF NOT EXISTS authors (
+    id UUID DEFAULT uuidv7() PRIMARY KEY,
+    name text NOT NULL,
+    bio text
+);
+```
+
+After writing a SQL command to create a table, apply the command. Notice the
+subdirectory associated with a particular database, in this case _first_.
+Notice the keyword _up_ as the final token in the command.
+```bash
+~/vamos $ export TEST_DB=postgres://tester@localhost:5432/test_data?sslmode=disable
+~/vamos $ migrate -database $TEST_DB -path sqlc/migrations/first up
+```
+The creation of any tables and any adjustments offered by _*.up.sql_ can be
+reversed by following the SQL commands written in _*.down.sql_ files.
+
 
 ### Logs
 Information about the logger.
@@ -195,5 +235,9 @@ This can be observed during startup.
 ```
 
 
+
+
 [^p1]: https://podman.io/docs/installation#macos
 [^p2]: https://docs.fedoraproject.org/en-US/fedora-coreos/fcos-projects/
+[^d1]: https://github.com/golang-migrate/migrate?tab=readme-ov-file#migrate
+[^d2]: https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html
