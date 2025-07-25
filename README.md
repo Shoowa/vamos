@@ -340,9 +340,32 @@ func CreateLogger(cfg *config.Config) *slog.Logger {
 
 This can be observed during startup.
 ```bash
-~/vamos $ go build -v -ldflags="-s -X 'vamos/internal/config.AppVersion=v.0.0.0' "
 ~/vamos $ APP_ENV="DEV" ./vamos
 {"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
+```
+
+## Build
+Generate a SemVer based on the Git Commit record, then provide that value as
+input to the build step. An informative record of Git Commits can aid any
+operator during an incident.
+
+```bash
+~/vamos $ go build -v -ldflags="-s -X 'vamos/internal/config.AppVersion=v.0.0.0' " -o vamos
+```
+The linker flag _-s_ removes symbol table info and DWARF info to produce a
+smaller executable. And _-X_[^b1] sets the value of a _string_ variable named
+_AppVersion_ that resides in the _config_ package. This allows us to dynamically
+write the version of the application after each new commit & build.
+
+```go
+package config
+
+import (
+    "gopkg.in/yaml.v3"
+    "os"
+)
+
+var AppVersion string
 ```
 
 
@@ -352,3 +375,4 @@ This can be observed during startup.
 [^p2]: https://docs.fedoraproject.org/en-US/fedora-coreos/fcos-projects/
 [^d1]: https://github.com/golang-migrate/migrate?tab=readme-ov-file#migrate
 [^d2]: https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html
+[^b1]: https://pkg.go.dev/testing
