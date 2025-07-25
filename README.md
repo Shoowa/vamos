@@ -409,4 +409,4 @@ code.
 [^p2]: https://docs.fedoraproject.org/en-US/fedora-coreos/fcos-projects/
 [^d1]: https://github.com/golang-migrate/migrate?tab=readme-ov-file#migrate
 [^d2]: https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html
-[^b1]: https://pkg.go.dev/testing
+[^b1]: https://pkg.go.dev/cmd/link
