@@ -1,0 +1,20 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries/first"
+    schema: "migrations/first"
+    gen:
+      go:
+        package: "first"
+        out: "data/first"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+  - engine: "postgresql"
+    queries: "queries/second"
+    schema: "migrations/second"
+    gen:
+      go:
+        package: "second"
+        out: "data/second"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
