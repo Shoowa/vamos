@@ -1,3 +1,8 @@
+####################################################
+####### Podman VM & Containers #####################
+####### Directories are layered as follows: ########
+####### host -> VM -> container ####################
+####################################################
 SYSD_FILES_ON_HOST = _linux/*.{container,service,target}
 VOLUME_VM_CONTAINER_FILES = /data/setup/*.container
 SYSD_DIR_ON_VM = .config/containers/systemd
@@ -6,14 +11,6 @@ SYSD_RELOAD = systemctl --user daemon-reload
 DEV_TARGETS = secrets.target databases.target
 DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw
 
-
-
-
-####################################################
-####### Podman VM & Containers #####################
-####### Directories are layered as follows: ########
-####### host -> VM -> container ####################
-####################################################
 podman_create_vm:
 	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{couchdb1,postgres,setup} #Create VM volume on MacOS Host.
 	-cp ${SYSD_FILES_ON_HOST} ~/podman_vm/setup #Add SystemD scripts to VM.
@@ -61,3 +58,34 @@ podman_status_dev:
 # make podman_show_logs name=dev_postgres
 podman_show_logs:
 	podman machine ssh dev_vamos "journalctl --user -u ${name}.service" | less
+
+
+###############################
+##### GO / POSTGRES TASKS #####
+###############################
+SQLC_FILE = sqlc/sqlc.yaml
+SQLC_MIGR_1 = sqlc/migrations/first
+SQLC_MIGR_2 = sqlc/migrations/second
+
+# Download executables into GO BIN.
+download_generators:
+	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+# Generate the application code for Postgres queries.
+generate_db_code:
+	@sqlc generate -f ${SQLC_FILE}
+
+# make create_db1_migration name=create_authors
+create_db1_migration:
+	@migrate create -ext sql -dir ${SQLC_MIGR_1} -seq ${name}
+
+create_db2_migration:
+	@migrate create -ext sql -dir ${SQLC_MIGR_2} -seq ${name}
+
+# make migrate_test_up TEST_DB="postgres://tester@localhost:5432/test_data?sslmode=disable"
+migrate_test_up:
+	@migrate -database ${TEST_DB} -path ${SQLC_MIGR_1} up
+
+migrate_test_down:
+	@migrate -database ${TEST_DB} -path ${SQLC_MIGR_1} down -all
