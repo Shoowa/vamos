@@ -368,6 +368,40 @@ import (
 var AppVersion string
 ```
 
+### Native Functions & Discrete Packages
+Three natively written functions determine equality, the absence of errors, and
+truth. One less dependency in the application. Below is an example of a testing
+function residing in _testhelper.go_.
+```go
+// internal/testhelper/testhelper.go
+func Equals(tb testing.TB, exp, act interface{}) {
+	if !reflect.DeepEqual(exp, act) {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
+		tb.FailNow()
+	}
+}
+```
+These functions can be invoked by a test package. Use the dot at the beginning
+of the import path to avoid prefacing every invocation with the name of the
+_testhelper_ package.
+```go
+// internal/secrets/secrets.go
+package secrets_test
+
+import (
+	"testing"
+
+	. "vamos/internal/secrets"
+	. "vamos/internal/testhelper"
+)
+```
+Notice _secrets_test_ is a separate package from the package _secrets_. All the
+tests reside in the former and the functionality resides in the latter. The
+package _secrets_test_ needs to import the package _secrets_, and only public
+functions & fields can be tested. This encourages _black box_ testing and clean
+code.
+
 
 
 
