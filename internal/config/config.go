@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
 )
@@ -30,10 +31,30 @@ func Read() *Config {
 }
 
 type Config struct {
-	Logger  *Logger `yaml:"logger"`
-	Version string  `yaml:"version"`
+	Logger  *Logger  `yaml:"logger"`
+	Version string   `yaml:"version"`
+	Secrets *Secrets `yaml:"secrets"`
 }
 
 type Logger struct {
 	Level string `yaml:"level"`
+}
+
+type Secrets struct {
+	Openbao Openbao `yaml:"openbao"`
+}
+
+type Openbao struct {
+	Token  string `yaml:"token"`
+	Scheme string `yaml:"scheme"`
+	Host   string `yaml:"host"`
+	Port   int    `yaml:"port"`
+}
+
+func (o *Openbao) ReadConfig() string {
+	o.Token = os.Getenv("OPENBAO_TOKEN")
+	return fmt.Sprintf(
+		"%v://%v:%v",
+		o.Scheme, o.Host, o.Port,
+	)
 }

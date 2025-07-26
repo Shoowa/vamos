@@ -395,6 +395,12 @@ import (
 	. "vamos/internal/secrets"
 	. "vamos/internal/testhelper"
 )
+
+func Test_Configuration(t *testing.T) {
+    // abbreviated for clarity...
+
+    Equals(t, "token", openbao.Token)
+}
 ```
 Notice _secrets_test_ is a separate package from the package _secrets_. All the
 tests reside in the former and the functionality resides in the latter. The
