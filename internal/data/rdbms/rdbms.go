@@ -1,0 +1,78 @@
+package rdbms
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"vamos/internal/config"
+	"vamos/internal/secrets"
+)
+
+const (
+	TIMEOUT_PING = time.Second * 1
+)
+
+func whichDB(cfg *config.Config, dbPosition int) config.Rdb {
+	return cfg.Data.Relational[dbPosition]
+}
+
+func credentials(db config.Rdb) (string, error) {
+	credString := fmt.Sprintf(
+		"user=%v host=%v database=%v sslmode=%v",
+		db.User, db.Host, db.Database, db.Sslmode,
+	)
+	return credString, nil
+}
+
+func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
+	db := whichDB(cfg, dbPosition)
+
+	credString, credErr := credentials(db)
+	if credErr != nil {
+		return nil, credErr
+	}
+
+	pgxConfig, configErr := pgxpool.ParseConfig(credString)
+	if configErr != nil {
+		return nil, configErr
+	}
+
+	pgxConfig.BeforeConnect = func(ctx context.Context, cc *pgx.ConnConfig) error {
+		pw, pwErr := secrets.BuildAndRead(cfg, db.Secret)
+		if pwErr != nil {
+			return pwErr
+		}
+
+		cc.Password = pw
+		return nil
+	}
+
+	return pgxConfig, nil
+}
+
+func ConnectDB(cfg *config.Config, dbPosition int) (*pgxpool.Pool, error) {
+	dbConfig, dbConfigErr := configure(cfg, dbPosition)
+	if dbConfigErr != nil {
+		return nil, dbConfigErr
+	}
+
+	ctxTimer, cancel := context.WithTimeout(context.Background(), TIMEOUT_PING)
+	defer cancel()
+
+	dbpool, connErr := pgxpool.NewWithConfig(ctxTimer, dbConfig)
+
+	if connErr != nil {
+		return nil, connErr
+	}
+
+	pingErr := dbpool.Ping(ctxTimer)
+	if pingErr != nil {
+		return nil, pingErr
+	}
+
+	return dbpool, nil
+}

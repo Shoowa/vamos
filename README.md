@@ -340,7 +340,7 @@ func CreateLogger(cfg *config.Config) *slog.Logger {
 
 This can be observed during startup.
 ```bash
-~/vamos $ APP_ENV="DEV" ./vamos
+~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
 {"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
 ```
 
