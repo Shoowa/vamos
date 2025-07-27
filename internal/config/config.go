@@ -34,6 +34,7 @@ type Config struct {
 	Logger  *Logger  `yaml:"logger"`
 	Version string   `yaml:"version"`
 	Secrets *Secrets `yaml:"secrets"`
+	Data    *Data    `yaml:"data"`
 }
 
 type Logger struct {
@@ -57,4 +58,17 @@ func (o *Openbao) ReadConfig() string {
 		"%v://%v:%v",
 		o.Scheme, o.Host, o.Port,
 	)
+}
+
+type Data struct {
+	Relational []Rdb `yaml:"relational"`
+}
+
+type Rdb struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	User     string `yaml:"user"`
+	Database string `yaml:"database"`
+	Sslmode  string `yaml:"sslmode"`
+	Secret   string `yaml:"secret"`
 }
