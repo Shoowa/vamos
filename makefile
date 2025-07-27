@@ -89,3 +89,10 @@ migrate_test_up:
 
 migrate_test_down:
 	@migrate -database ${TEST_DB} -path ${SQLC_MIGR_1} down -all
+
+
+############################
+###### SECRETS TEST ########
+############################
+secrets_test:
+	@go test ./internal/secrets -count=1 --tags=integration
