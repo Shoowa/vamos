@@ -96,3 +96,12 @@ migrate_test_down:
 ############################
 secrets_test:
 	@go test ./internal/secrets -count=1 --tags=integration
+
+
+#########################################
+###### POSTGRES INTEGRATION TEST ########
+#########################################
+postgres_test:
+	@go test ./internal/data/rdbms -count=1 --tags=integration
+
+test_database: migrate_test_up postgres_test migrate_test_down
