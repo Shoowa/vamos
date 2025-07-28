@@ -16,11 +16,11 @@ const (
 	TIMEOUT_PING = time.Second * 1
 )
 
-func whichDB(cfg *config.Config, dbPosition int) config.Rdb {
+func WhichDB(cfg *config.Config, dbPosition int) config.Rdb {
 	return cfg.Data.Relational[dbPosition]
 }
 
-func credentials(db config.Rdb) (string, error) {
+func Credentials(db config.Rdb) (string, error) {
 	credString := fmt.Sprintf(
 		"user=%v host=%v database=%v sslmode=%v",
 		db.User, db.Host, db.Database, db.Sslmode,
@@ -29,9 +29,9 @@ func credentials(db config.Rdb) (string, error) {
 }
 
 func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
-	db := whichDB(cfg, dbPosition)
+	db := WhichDB(cfg, dbPosition)
 
-	credString, credErr := credentials(db)
+	credString, credErr := Credentials(db)
 	if credErr != nil {
 		return nil, credErr
 	}
