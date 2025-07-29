@@ -116,6 +116,14 @@ func Test_ReadingData(t *testing.T) {
 		readManyAuthors(t, q, timer)
 	})
 
+	t.Run("Read most productive author", func(t *testing.T) {
+		readMostProductiveAuthor(t, q, timer)
+	})
+
+	t.Run("Read most productive author & book", func(t *testing.T) {
+		readMostProductiveAuthorAndBook(t, q, timer)
+	})
+
 	t.Cleanup(func() { db.Close() })
 }
 
@@ -137,4 +145,25 @@ func readManyAuthors(t *testing.T, q *first.Queries, ctx context.Context) {
 
 	Ok(t, err)
 	Equals(t, 5, len(result))
+}
+
+func readMostProductiveAuthor(t *testing.T, q *first.Queries, ctx context.Context) {
+	t.Parallel()
+	timer, cancel := context.WithTimeout(ctx, TIMEOUT_TEST)
+	defer cancel()
+	result, err := q.MostProductiveAuthor(timer)
+
+	Ok(t, err)
+	Equals(t, AUTHOR, result)
+}
+
+func readMostProductiveAuthorAndBook(t *testing.T, q *first.Queries, ctx context.Context) {
+	t.Parallel()
+	timer, cancel := context.WithTimeout(ctx, TIMEOUT_TEST)
+	defer cancel()
+	result, err := q.MostProductiveAuthorAndBook(timer)
+
+	Ok(t, err)
+	Equals(t, AUTHOR, result.Author.Name)
+	Equals(t, "The Canterbury Tales", result.Book.Title)
 }
