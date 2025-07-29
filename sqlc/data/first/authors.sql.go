@@ -68,3 +68,47 @@ func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
 	}
 	return items, nil
 }
+
+const mostProductiveAuthor = `-- name: MostProductiveAuthor :one
+SELECT authors.name
+FROM authors
+JOIN books ON books.authorID = authors.id
+WHERE books.wordcount = (SELECT MAX(books.wordcount) FROM books)
+`
+
+func (q *Queries) MostProductiveAuthor(ctx context.Context) (string, error) {
+	row := q.db.QueryRow(ctx, mostProductiveAuthor)
+	var name string
+	err := row.Scan(&name)
+	return name, err
+}
+
+const mostProductiveAuthorAndBook = `-- name: MostProductiveAuthorAndBook :one
+SELECT authors.id, authors.name, authors.bio, books.id, books.authorid, books.title, books.edition, books.volume, books.year, books.wordcount
+FROM authors
+JOIN books ON books.authorID = authors.id
+WHERE books.wordcount = (SELECT MAX(books.wordcount) FROM books)
+`
+
+type MostProductiveAuthorAndBookRow struct {
+	Author Author `json:"author"`
+	Book   Book   `json:"book"`
+}
+
+func (q *Queries) MostProductiveAuthorAndBook(ctx context.Context) (MostProductiveAuthorAndBookRow, error) {
+	row := q.db.QueryRow(ctx, mostProductiveAuthorAndBook)
+	var i MostProductiveAuthorAndBookRow
+	err := row.Scan(
+		&i.Author.ID,
+		&i.Author.Name,
+		&i.Author.Bio,
+		&i.Book.ID,
+		&i.Book.Authorid,
+		&i.Book.Title,
+		&i.Book.Edition,
+		&i.Book.Volume,
+		&i.Book.Year,
+		&i.Book.Wordcount,
+	)
+	return i, err
+}

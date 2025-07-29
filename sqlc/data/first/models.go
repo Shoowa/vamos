@@ -13,3 +13,13 @@ type Author struct {
 	Name string      `json:"name"`
 	Bio  pgtype.Text `json:"bio"`
 }
+
+type Book struct {
+	ID        int64       `json:"id"`
+	Authorid  pgtype.UUID `json:"authorid"`
+	Title     string      `json:"title"`
+	Edition   pgtype.Int2 `json:"edition"`
+	Volume    pgtype.Int2 `json:"volume"`
+	Year      pgtype.Date `json:"year"`
+	Wordcount pgtype.Int4 `json:"wordcount"`
+}
