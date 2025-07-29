@@ -21,4 +21,6 @@ func main() {
 		panic(db1Err)
 	}
 	defer db1.Close()
+
+	rdbms.FirstDB_AdoptQueries(db1)
 }
