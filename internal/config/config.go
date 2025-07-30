@@ -35,6 +35,7 @@ type Config struct {
 	Version string   `yaml:"version"`
 	Secrets *Secrets `yaml:"secrets"`
 	Data    *Data    `yaml:"data"`
+	HttpServer *HttpServer `yaml:"httpserver"`
 }
 
 type Logger struct {
@@ -71,4 +72,11 @@ type Rdb struct {
 	Database string `yaml:"database"`
 	Sslmode  string `yaml:"sslmode"`
 	Secret   string `yaml:"secret"`
+}
+
+type HttpServer struct {
+	Port         string `yaml:"port"`
+	TimeoutRead  int    `yaml:"timeout_read"`
+	TimeoutWrite int    `yaml:"timeout_write"`
+	TimeoutIdle  int    `yaml:"timeout_idle"`
 }

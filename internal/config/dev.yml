@@ -14,3 +14,8 @@ data:
       database: test_data
       sslmode: disable
       secret: dev-postgres-test
+httpserver:
+  port: 8080
+  timeout_read: 5
+  timeout_write: 10
+  timeout_idle: 5
