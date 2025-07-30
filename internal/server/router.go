@@ -6,8 +6,10 @@ import (
 
 // NewRouter accepts the Backbone struct containing all the dependencies needed
 // by the Middleware and the Routes.
-func NewRouter(b *Backbone) *http.ServeMux {
+func NewRouter(b *Backbone) *Bundle {
 	mux := http.NewServeMux()
 
-	return mux
+	routerWithLoggingMiddleware := NewBundle(b.Logger, mux)
+
+	return routerWithLoggingMiddleware
 }
