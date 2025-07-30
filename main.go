@@ -4,6 +4,7 @@ import (
 	"vamos/internal/config"
 	"vamos/internal/data/rdbms"
 	"vamos/internal/logging"
+	"vamos/internal/server"
 )
 
 const (
@@ -22,5 +23,8 @@ func main() {
 	}
 	defer db1.Close()
 
-	rdbms.FirstDB_AdoptQueries(db1)
+	server.NewBackbone(
+		server.WithLogger(logger),
+		server.WithQueryHandleForFirstDB(db1),
+	)
 }
