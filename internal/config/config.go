@@ -31,10 +31,10 @@ func Read() *Config {
 }
 
 type Config struct {
-	Logger  *Logger  `yaml:"logger"`
-	Version string   `yaml:"version"`
-	Secrets *Secrets `yaml:"secrets"`
-	Data    *Data    `yaml:"data"`
+	Logger     *Logger     `yaml:"logger"`
+	Version    string      `yaml:"version"`
+	Secrets    *Secrets    `yaml:"secrets"`
+	Data       *Data       `yaml:"data"`
 	HttpServer *HttpServer `yaml:"httpserver"`
 }
 
