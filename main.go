@@ -23,8 +23,10 @@ func main() {
 	}
 	defer db1.Close()
 
-	server.NewBackbone(
+	backbone := server.NewBackbone(
 		server.WithLogger(logger),
 		server.WithQueryHandleForFirstDB(db1),
 	)
+
+	server.NewServer(cfg, backbone)
 }
