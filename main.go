@@ -1,6 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"vamos/internal/config"
 	"vamos/internal/data/rdbms"
 	"vamos/internal/logging"
@@ -23,10 +27,44 @@ func main() {
 	}
 	defer db1.Close()
 
+	// child logger for webserver
+	srvLogger := logger.WithGroup("server")
+
 	backbone := server.NewBackbone(
-		server.WithLogger(logger),
+		server.WithLogger(srvLogger),
 		server.WithQueryHandleForFirstDB(db1),
 	)
 
-	server.NewServer(cfg, backbone)
+	// Create a webserver with accessible dependencies.
+	webserver := server.NewServer(cfg, backbone)
+
+	// Activate webserver.
+	go server.GracefulIgnition(webserver)
+	logger.Info("HTTP Server activated")
+
+	// Listen for termination signal. This is a blocking call.
+	catchSigTerm()
+	logger.Info("Begin decommissioning application")
+
+	// After receiving signal, begin deactivating server.
+	shutErr := server.GracefulShutdown(webserver)
+
+	// Record errors & force shutdown.
+	if shutErr != nil {
+		logger.Error("HTTP Server shutdown error", "ERR:", shutErr.Error())
+		killErr := webserver.Close()
+		if killErr != nil {
+			logger.Error("HTTP Server kill error", "ERR:", killErr.Error())
+		}
+	}
+	logger.Info("HTTP Server halted")
+}
+
+// CatchSigTerm creates a buffered message queue awaiting an OS signal. The Main
+// routine will block while the channel awaits the signal. After receiving a
+// signal, the Main routine will shutdown the server.
+func catchSigTerm() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
 }
