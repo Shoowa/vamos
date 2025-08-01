@@ -495,9 +495,102 @@ code.
 
 
 
+## Reliable Qualities
+
+#### Graceful Shutdown
+Requests need to be terminated during a rolling deployment in a manner that
+preserves the data of the customer, enhances the user experience, and avoids
+alarms that can mistakenly summon staff.
+
+The webserver is launched in a separate _go routine_, then a _channel_ is opened
+in _main()_ to receive termination signals. This blocks _main()_ until either
+signal 2 or 15 is received.
+```go
+// main.go
+package main
+// abbreviated for clarity...
+
+func main() {
+	webserver := server.NewServer(cfg, backbone)
+    go server.GracefulIgnition(webserver)
+
+	catchSigTerm()
+	server.GracefulShutdown(webserver)
+}
+```
+
+Signal 15 allows the program to close listening connections and idle connections
+while awaiting active connections. This is essential in a dynamic environment
+like a _Kubernetes_ cluster. A kubelet transmits Signal 15 to a container and
+pods wait 30 seconds for application cleanup.[^r1]
+```go
+// main.go
+package main
+// abbreviated for clarity...
+
+func catchSigTerm() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+}
+```
+
+After Signal 15 is received, _server.GracefulShutdown(webserver)_ is invoked.
+It wraps _http.Server.Shutdown(shutdownCtx)_ with a 15 second timer. And the
+cancellation function _stop()_ will also be invoked.
+```go
+// internal/server/server.go
+package server
+// abbreviated for clarity...
+
+const GRACE_PERIOD = time.Second * 15
+
+func GracefulShutdown(s *http.Server) {
+	quitCtx, quit := context.WithTimeout(context.Background(), GRACE_PERIOD)
+	defer quit()
+
+	err := s.Shutdown(quitCtx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+```
+
+_stop()_ was assigned to the server during configuration. It signals to all the
+child contexts derived from _base_ and used by the HTTP Handlers to terminate
+any active connections.
+```go
+// internal/server/server.go
+package server
+// abbreviated for clarity...
+
+func NewServer(cfg *config.Config, b *Backbone) *http.Server {
+	base, stop := context.WithCancel(context.Background())
+
+	s := &http.Server{
+		BaseContext:  func(lstnr net.Listener) context.Context { return base },
+	}
+
+	s.RegisterOnShutdown(stop) // Cancellation Func assigned to shutdown.
+	return s
+}
+```
+
+Inserting the webserver in a _go routine_ is required to avoid a hasty shutdown.
+When _http.Server.Shutdown()_ is invoked, _http.Server.ListenAndServe()_ returns
+immediately.[^s1] _ListenAndServe()_ was blocking in a _go routine_, and becomes
+un-blocked. If _ListenAndServe()_ had been implemented
+in _main()_, then it would immediately un-block and _main()_ would immediately
+return.
+
+
+
 [^p1]: https://podman.io/docs/installation#macos
 [^p2]: https://docs.fedoraproject.org/en-US/fedora-coreos/fcos-projects/
 [^d1]: https://github.com/golang-migrate/migrate?tab=readme-ov-file#migrate
 [^d2]: https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html
 [^b1]: https://pkg.go.dev/cmd/link
 [^o1]: https://rednafi.com/go/dysfunctional_options_pattern/#functional-options-pattern
+[^r1]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow
+[^s1]: https://pkg.go.dev/net/http#Server.Shutdown
