@@ -15,6 +15,7 @@ type Option func(*Backbone)
 type Backbone struct {
 	Logger  *slog.Logger
 	FirstDB *first.Queries
+	Health  *Health
 }
 
 // The Options pattern is used to configure the struct, because the struct
@@ -24,6 +25,9 @@ func NewBackbone(options ...Option) *Backbone {
 	for _, opt := range options {
 		opt(b)
 	}
+	health := new(Health)
+	health.Rdbms = false
+	b.Health = health
 	return b
 }
 

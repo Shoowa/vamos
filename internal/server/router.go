@@ -9,6 +9,9 @@ import (
 func NewRouter(b *Backbone) *Bundle {
 	mux := http.NewServeMux()
 
+	// An Operations team can amend routes in routes_operations.go
+	addOperationalRoutes(mux, b)
+
 	routerWithLoggingMiddleware := NewBundle(b.Logger, mux)
 
 	return routerWithLoggingMiddleware
