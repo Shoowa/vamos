@@ -16,6 +16,7 @@ type Backbone struct {
 	Logger  *slog.Logger
 	FirstDB *first.Queries
 	Health  *Health
+	DbHandle *pgxpool.Pool
 }
 
 // The Options pattern is used to configure the struct, because the struct
@@ -41,5 +42,11 @@ func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
 		q := rdbms.FirstDB_AdoptQueries(dbHandle)
 		b.FirstDB = q
+	}
+}
+
+func WithDbHandle(dbHandle *pgxpool.Pool) Option {
+	return func(b *Backbone) {
+		b.DbHandle = dbHandle
 	}
 }

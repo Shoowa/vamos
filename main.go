@@ -33,6 +33,7 @@ func main() {
 	backbone := server.NewBackbone(
 		server.WithLogger(srvLogger),
 		server.WithQueryHandleForFirstDB(db1),
+		server.WithDbHandle(db1),
 	)
 
 	// Create a webserver with accessible dependencies.
