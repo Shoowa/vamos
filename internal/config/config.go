@@ -36,6 +36,7 @@ type Config struct {
 	Secrets    *Secrets    `yaml:"secrets"`
 	Data       *Data       `yaml:"data"`
 	HttpServer *HttpServer `yaml:"httpserver"`
+	Health     *Health     `yaml:"health"`
 }
 
 type Logger struct {
@@ -79,4 +80,8 @@ type HttpServer struct {
 	TimeoutRead  int    `yaml:"timeout_read"`
 	TimeoutWrite int    `yaml:"timeout_write"`
 	TimeoutIdle  int    `yaml:"timeout_idle"`
+}
+
+type Health struct {
+	PingDbTimer int `yaml:"ping_db_timer"`
 }

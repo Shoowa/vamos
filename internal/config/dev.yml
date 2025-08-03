@@ -19,3 +19,5 @@ httpserver:
   timeout_read: 5
   timeout_write: 10
   timeout_idle: 5
+health:
+  ping_db_timer: 60
