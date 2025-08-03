@@ -36,6 +36,9 @@ func main() {
 		server.WithDbHandle(db1),
 	)
 
+	// Launch background health checks.
+	backbone.SetupHealthChecks(cfg)
+
 	// Create a webserver with accessible dependencies.
 	webserver := server.NewServer(cfg, backbone)
 
