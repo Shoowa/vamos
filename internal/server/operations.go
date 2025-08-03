@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"vamos/internal/config"
@@ -25,10 +26,11 @@ func beep(seconds time.Duration, task func()) {
 // Health offers summarized data.
 type Health struct {
 	Rdbms bool
+	Heap  bool
 }
 
 func (h *Health) PassFail() bool {
-	return h.Rdbms
+	return h.Rdbms || h.Heap
 }
 
 func (b *Backbone) PingDB() {
@@ -49,5 +51,24 @@ func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
 	b.PingDB()
 
 	pingDbTimer := time.Duration(cfg.Health.PingDbTimer)
+	heapTimer := time.Duration(cfg.Health.HeapTimer)
+
+	// Use closure to configure method CheckHeapSize.
+	heapSize := 1024 * 1024 * cfg.Health.HeapSize
+	checkHeapSize := func() { b.CheckHeapSize(heapSize) }
+
 	go beep(pingDbTimer, b.PingDB)
+	go beep(heapTimer, checkHeapSize)
+}
+
+func (b *Backbone) CheckHeapSize(threshold uint64) {
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+
+	if stats.HeapAlloc < threshold {
+		b.Health.Heap = true
+		return
+	}
+
+	b.Health.Heap = false
 }

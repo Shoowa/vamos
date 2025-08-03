@@ -28,6 +28,7 @@ func NewBackbone(options ...Option) *Backbone {
 	}
 	health := new(Health)
 	health.Rdbms = false
+	health.Heap = true
 	b.Health = health
 	return b
 }
