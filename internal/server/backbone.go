@@ -13,9 +13,9 @@ type Option func(*Backbone)
 
 // Backbone holds data dependencies.
 type Backbone struct {
-	Logger  *slog.Logger
-	FirstDB *first.Queries
-	Health  *Health
+	Logger   *slog.Logger
+	FirstDB  *first.Queries
+	Health   *Health
 	DbHandle *pgxpool.Pool
 }
 
