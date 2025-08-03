@@ -371,10 +371,9 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 ```
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
-### Logs
-Information about the logger.
+## Configuration
 
-#### Configuration
+### Logs
 Logging is configured as _debug_ in development or as _warn_ in production.
 ```yaml
 # internal/config/dev.yml
@@ -427,6 +426,102 @@ This can be observed during startup.
 ~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
 {"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
 ```
+
+### Health Record
+Applications usually receive a request for a health status, then perform some
+logic to evaluate the health of the application and the health of any
+dependencies, then answer. That flow of events doesn't happen in this web app.
+
+Instead, the web server responds to any request for health by simply reading
+from a custom struct named _Health_ that resides in _Backbone_.
+```go
+// internal/server/operations.go
+package server
+// abbreviated for clarity...
+
+type Health struct {
+	Rdbms    bool
+	Heap     bool
+}
+```
+_Health_ has several _boolean_ fields. Any request for the status of health is
+answered by a method that reads from these fields and evaluates the totality of
+the _boolean_ conditions.
+```go
+// internal/server/operations.go
+package server
+// abbreviated for clarity...
+
+func (h *Health) PassFail() bool {
+	return h.Rdbms || h.Heap
+}
+```
+
+The answer is then provided as a HTTP Header -- either 204 or 503.
+```go
+// internal/server/routes_operations.go
+package server
+// abbreviated for clarity...
+
+func (b *Backbone) health(w http.ResponseWriter, r *http.Request) {
+	status := b.Health.PassFail()
+
+	if status {
+		w.WriteHeader(http.StatusNoContent)
+	} else {
+		b.Logger.Error("Failed health check")
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+}
+```
+
+How is the health of those records evaluated? An individual function that
+determines the condition of a resource is inserted into a timed loop inside a
+_go routine_. Notice the function named _checkHeapSize_ is an argument to the
+_beep_ function.
+```go
+// internal/server/operations.go
+package server
+// abbreviated for clarity...
+
+func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
+	pingDbTimer := time.Duration(cfg.Health.PingDbTimer)
+	heapTimer := time.Duration(cfg.Health.HeapTimer)
+
+	go beep(pingDbTimer, b.PingDB)
+	go beep(heapTimer, checkHeapSize)
+}
+```
+
+And _beep_ creates a _Ticker_[^t1] that will emit a signal periodically. Then
+enters a loop that awaits the signal. Upon receiving the signal, a function
+represented by the parameter _task_ is invoked. _checkHeapSize_ will be invoked
+as the _task_.
+```go
+// internal/server/operations.go
+package server
+// abbreviated for clarity...
+
+func beep(seconds time.Duration, task func()) {
+	ticker := time.NewTicker(seconds * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			task()
+		}
+	}
+}
+```
+
+What is the benefit of this convoluted setup? No matter how often an external
+service hammers the _/health_ endpoint, it will be less taxing because it simply
+reads a _boolean_. The real work of evaluating any resource is held in a
+discrete function, and there can be a few or many. They all run in the
+background. They each update a particular health status on their own time. And
+the configuration of time is determined by the operator of this application.
+
 
 ## Build
 Generate a SemVer based on the Git Commit record, then provide that value as
@@ -594,3 +689,4 @@ return.
 [^o1]: https://rednafi.com/go/dysfunctional_options_pattern/#functional-options-pattern
 [^r1]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow
 [^s1]: https://pkg.go.dev/net/http#Server.Shutdown
+[^t1]: https://pkg.go.dev/time#NewTicker
