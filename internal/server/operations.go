@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"vamos/internal/config"
@@ -61,6 +62,11 @@ func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
 	go beep(heapTimer, checkHeapSize)
 }
 
+func (b *Backbone) Write(p []byte) (n int, err error) {
+	b.HeapSnapshot.Reset()
+	return b.HeapSnapshot.Write(p)
+}
+
 func (b *Backbone) CheckHeapSize(threshold uint64) {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
@@ -71,4 +77,9 @@ func (b *Backbone) CheckHeapSize(threshold uint64) {
 	}
 
 	b.Health.Heap = false
+	b.Logger.Warn("Heap surpassed threshold!", "threshold", threshold, "allocated", stats.HeapAlloc)
+	err := pprof.WriteHeapProfile(b)
+	if err != nil {
+		b.Logger.Error("Error writing heap profile", "ERR:", err.Error())
+	}
 }

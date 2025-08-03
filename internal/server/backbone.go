@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,6 +18,7 @@ type Backbone struct {
 	FirstDB  *first.Queries
 	Health   *Health
 	DbHandle *pgxpool.Pool
+	HeapSnapshot *bytes.Buffer
 }
 
 // The Options pattern is used to configure the struct, because the struct
@@ -30,6 +32,8 @@ func NewBackbone(options ...Option) *Backbone {
 	health.Rdbms = false
 	health.Heap = true
 	b.Health = health
+	buf := new(bytes.Buffer)
+	b.HeapSnapshot = buf
 	return b
 }
 
