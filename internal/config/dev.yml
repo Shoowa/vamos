@@ -21,3 +21,5 @@ httpserver:
   timeout_idle: 5
 health:
   ping_db_timer: 60
+  heap_timer: 30
+  heap_size: 500 #MB
