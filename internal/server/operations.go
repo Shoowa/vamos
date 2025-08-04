@@ -28,10 +28,11 @@ func beep(seconds time.Duration, task func()) {
 type Health struct {
 	Rdbms bool
 	Heap  bool
+	Routines bool
 }
 
 func (h *Health) PassFail() bool {
-	return h.Rdbms && h.Heap
+	return h.Rdbms && h.Heap && h.Routines
 }
 
 func (b *Backbone) PingDB() {
@@ -53,13 +54,19 @@ func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
 
 	pingDbTimer := time.Duration(cfg.Health.PingDbTimer)
 	heapTimer := time.Duration(cfg.Health.HeapTimer)
+	routinesTimer := time.Duration(cfg.Health.RoutTimer)
 
 	// Use closure to configure method CheckHeapSize.
 	heapSize := 1024 * 1024 * cfg.Health.HeapSize
 	checkHeapSize := func() { b.CheckHeapSize(heapSize) }
 
+	// Use closure to configure method CheckNumRoutines.
+	limit := runtime.NumCPU() * cfg.Health.RoutinesPerCore
+	checkNumRoutines := func() { b.CheckNumRoutines(limit) }
+
 	go beep(pingDbTimer, b.PingDB)
 	go beep(heapTimer, checkHeapSize)
+	go beep(routinesTimer, checkNumRoutines)
 }
 
 func (b *Backbone) Write(p []byte) (n int, err error) {
@@ -82,4 +89,15 @@ func (b *Backbone) CheckHeapSize(threshold uint64) {
 	if err != nil {
 		b.Logger.Error("Error writing heap profile", "ERR:", err.Error())
 	}
+}
+
+func (b *Backbone) CheckNumRoutines(limit int) {
+	amount := runtime.NumGoroutine()
+	if amount < limit {
+		b.Health.Routines = true
+		return
+	}
+
+	b.Health.Routines = false
+	b.Logger.Warn("Routines surpassed threshold!", "threshold", limit, "running", amount)
 }

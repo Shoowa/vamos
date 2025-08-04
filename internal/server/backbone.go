@@ -31,6 +31,7 @@ func NewBackbone(options ...Option) *Backbone {
 	health := new(Health)
 	health.Rdbms = false
 	health.Heap = true
+	health.Routines = true
 	b.Health = health
 	buf := new(bytes.Buffer)
 	b.HeapSnapshot = buf
