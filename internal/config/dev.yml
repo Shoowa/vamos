@@ -23,3 +23,5 @@ health:
   ping_db_timer: 60
   heap_timer: 30
   heap_size: 500 #MB
+  rout_timer: 30
+  routines_per_core: 300
