@@ -453,7 +453,7 @@ package server
 // abbreviated for clarity...
 
 func (h *Health) PassFail() bool {
-	return h.Rdbms || h.Heap
+	return h.Rdbms && h.Heap
 }
 ```
 

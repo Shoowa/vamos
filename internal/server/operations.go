@@ -31,7 +31,7 @@ type Health struct {
 }
 
 func (h *Health) PassFail() bool {
-	return h.Rdbms || h.Heap
+	return h.Rdbms && h.Heap
 }
 
 func (b *Backbone) PingDB() {
