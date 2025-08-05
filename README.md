@@ -371,61 +371,6 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 ```
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
-## Configuration
-
-### Logs
-Logging is configured as _debug_ in development or as _warn_ in production.
-```yaml
-# internal/config/dev.yml
----
-logger:
-  level: debug
-```
-
-The level is read in _logging.go_.
-```go
-// internal/logging/logging.go
-package logging
-
-func configure(cfg *config.Config) *slog.HandlerOptions {
-	logLevel := &slog.LevelVar{}
-	if cfg.Logger.Level == "debug" {
-		logLevel.Set(slog.LevelDebug)
-	} else {
-		logLevel.Set(slog.LevelWarn)
-	}
-
-	opts := &slog.HandlerOptions{Level: logLevel}
-	return opts
-}
-```
-
-The primary logger is configured to include two details that can aid anyone
-debugging an incident in production. The version of the language, and the
-version of the application. Every child logger inherits these details.
-```go
-// internal/logging/logging.go
-package logging
-
-func CreateLogger(cfg *config.Config) *slog.Logger {
-	goVersion := slog.String("lang", runtime.Version())
-	appVersion := slog.String("app", config.AppVersion)
-	group := slog.Group("version", goVersion, appVersion)
-
-	opts := configure(cfg)
-	handler := slog.NewJSONHandler(os.Stdout, opts)
-	logger := slog.New(handler).With(group)
-
-	slog.SetDefault(logger)
-	return logger
-}
-```
-
-This can be observed during startup.
-```bash
-~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
-{"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
-```
 
 ### Health Record
 Applications usually receive a request for a health status, then perform some
@@ -705,6 +650,125 @@ return.
 
 
 ## Operate
+
+
+### Logging Configuration
+Logging is configured as _debug_ in development or as _warn_ in production.
+```yaml
+# internal/config/dev.yml
+---
+logger:
+  level: debug
+```
+
+The level is read in _logging.go_.
+```go
+// internal/logging/logging.go
+package logging
+
+func configure(cfg *config.Config) *slog.HandlerOptions {
+	logLevel := &slog.LevelVar{}
+	if cfg.Logger.Level == "debug" {
+		logLevel.Set(slog.LevelDebug)
+	} else {
+		logLevel.Set(slog.LevelWarn)
+	}
+
+	opts := &slog.HandlerOptions{Level: logLevel}
+	return opts
+}
+```
+
+The primary logger is configured to include two details that can aid anyone
+debugging an incident in production. The version of the language, and the
+version of the application. Every child logger inherits these details.
+```go
+// internal/logging/logging.go
+package logging
+
+func CreateLogger(cfg *config.Config) *slog.Logger {
+	goVersion := slog.String("lang", runtime.Version())
+	appVersion := slog.String("app", config.AppVersion)
+	group := slog.Group("version", goVersion, appVersion)
+
+	opts := configure(cfg)
+	handler := slog.NewJSONHandler(os.Stdout, opts)
+	logger := slog.New(handler).With(group)
+
+	slog.SetDefault(logger)
+	return logger
+}
+```
+
+This can be observed during startup.
+```bash
+~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+{"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
+```
+
+
+### Logging Middleware
+The _Backbone_ struct holds several databases and dependencies that can be used
+inside HTTP handlers. The logger is actually transferred from _Backbone_ to
+_Bundle_. The _Bundle_ also acquires the STDLIB router _http.ServeMux_. It holds
+both the logger and the router.
+```go
+// internal/server/router.go
+package server
+// abbreviated for clarity...
+
+func NewRouter(b *Backbone) *Bundle {
+	mux := http.NewServeMux()
+	routerWithLoggingMiddleware := NewBundle(b.Logger, mux)
+	return routerWithLoggingMiddleware
+}
+```
+
+The middleware is configured in _internal/server/middleware.go_ as a method on
+_Bundle_ that adopts the _http.Handler interface_ from the router by
+implementing _ServeHTTP(http.ReponseWriter, *http.Request)_.
+```go
+// internal/server/middleware.go
+package server
+// abbreviated for clarity...
+
+func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	b.Logger.Info(
+		"Inbound",
+		"method", req.Method,
+		"path", req.URL.Path,
+		"uagent", req.Header.Get("User-Agent"),
+	)
+
+	b.Router.ServeHTTP(w, req)
+}
+```
+Details of every _request_ are recorded. The HTTP method, path, and _User-Agent_
+header are highlighted. After those details are logged, the function continues
+to the regular router in _b.Router.ServeHTTP(w, req)_.
+
+By satisfying this _interface_, the _http.Server_ can treat _Bundle_ as a router.
+```go
+// internal/server/server.go
+package server
+// abbreviated for clarity...
+
+func NewServer(cfg *config.Config, b *Backbone) *http.Server {
+	s := &http.Server{
+		Addr:         ":" + cfg.HttpServer.Port,
+		Handler:      NewRouter(b), // Returns *Bundle
+	}
+	return s
+}
+```
+
+Then every incoming request is logged in a standard manner.
+```bash
+~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+# skipping other logs...
+{"time":"2025-08-05T16:45:17.23609-04:00","level":"INFO","msg":"Inbound","version":{"lang":"go1.24.0","app":"v.0.0.0"},"server":{"method":"GET","path":"/health","uagent":"HTTPie/3.2.4"}}
+```
+
 
 ### Continuous Profiling
 We can obtain useful data from the production environment during a memory
