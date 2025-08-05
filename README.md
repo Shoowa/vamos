@@ -592,6 +592,30 @@ code.
 
 ## Reliable Qualities
 
+#### Postgres Connection
+The Postgres connection pool retains access to the _Openbao_ secrets storage in
+a  method named _BeforeConnect_. This method ensures that the connection pool
+can read fresh credentials, so it enables the security practice of revoking &
+rotating credentials.
+```go
+// internal/data/rdbms/rdbms.go
+package rdbms
+// abbreviated for clarity...
+
+func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
+	pgxConfig.BeforeConnect = func(ctx context.Context, cc *pgx.ConnConfig) error {
+		pw, pwErr := secrets.BuildAndRead(cfg, db.Secret)
+		if pwErr != nil {
+			return pwErr
+		}
+
+		cc.Password = pw
+		return nil
+	}
+}
+```
+
+
 #### Graceful Shutdown
 Requests need to be terminated during a rolling deployment in a manner that
 preserves the data of the customer, enhances the user experience, and avoids
