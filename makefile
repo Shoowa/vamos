@@ -105,3 +105,12 @@ postgres_test:
 	-@go test ./internal/data/rdbms -count=1 --tags=integration
 
 test_database: migrate_test_up generate_db_code postgres_test migrate_test_down
+
+
+####################################
+##### Download Metrics Tooling #####
+####################################
+download_prometheus:
+	@go get github.com/prometheus/client_golang/prometheus
+	@go get github.com/prometheus/client_golang/prometheus/promauto
+	@go get github.com/prometheus/client_golang/prometheus/promhttp
