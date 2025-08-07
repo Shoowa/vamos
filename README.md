@@ -333,6 +333,10 @@ func FirstDB_AdoptQueries(dbpool *pgxpool.Pool) *first.Queries {
 Create a feature with an existing SQL Table by following this process:
 1. Draft a SQL query.
 2. Generate Go code in _sqlc/data/_ based on the new SQL.
+3. Draft a new HTTP Handler.
+4. Register the new HTTP Handler with the Router.
+5. Add a log line.
+6. Add a metric line & register it.
 
 ### Draft A SQL Query
 In the directory _sqlc/queries/first_, add a file named _authors.sql_, then
@@ -370,6 +374,142 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 }
 ```
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
+
+### HTTP Handlers & Databases
+Developers can focus on the file *internal/server/routes_features_v1.go* to
+create RESTful features.
+
+Dependency injection is the technique used to provide database handles to the
+HTTP handlers on the web server. Handlers are simply methods of the struct
+_Backbone_. Access a Postgres database through a _Queries_ struct residing in
+the _Backbone_ field named _FirstDB_.
+```go
+// internal/server/routes_features_v1.go
+package server
+// abbreviated for clarity...
+
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+	surname := req.PathValue("surname")
+
+	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
+	defer cancel()
+
+	result, _ := b.FirstDB.GetAuthor(timer, surname)
+	w.Write([]byte(result.Name))
+}
+```
+
+
+### Add HTTP Handler to Router
+Inside the package _server_ in _internal/server/routes_features_v1.go_, add
+the new HTTP Handler to the router by including it in the private function
+_addFeaturesV1_.
+
+Select the HTTP method that is most appropriate for the writing and reading of
+data. The ability to select _GET_ or _POST_ as an argument in parameter
+_pattern_ is a new feature of the language in version 1.22.[^r1]
+
+```go
+// internal/server/routes_features_v1.go
+package server
+// abbreviated for clarity...
+
+func addFeaturesV1(router *http.ServeMux, b *Backbone) {
+	rAuthorHandler := http.HandlerFunc(b.readAuthor)
+	router.Handle("GET /author/{surname}", rAuthorHandler)
+}
+```
+
+
+### Logs
+Inside a HTTP handler, record errors and extra data by simply invoking
+_b.Logger.Info(topic, key, value)_.
+```go
+//internal/server/routes_features_v1.go
+package server
+// abbreviated for clarity...
+
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+	surname := req.PathValue("surname")
+
+	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
+	defer cancel()
+
+	result, err := b.FirstDB.GetAuthor(timer, surname)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, context.Canceled):
+			b.Logger.Error("readAuthor", "status", StatusClientClosed)
+		case errors.Is(err, context.DeadlineExceeded):
+			b.Logger.Error("readAuthor", "status", http.StatusRequestTimeout)
+			http.Error(w, "timeout", http.StatusRequestTimeout)
+		case errors.Is(err, sql.ErrNoRows):
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			b.Logger.Error("readAuthor", "err", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	w.Write([]byte(result.Name))
+}
+```
+
+
+### Metrics
+The package _metrics_ is responsible for custom metrics.
+
+First, define the options _Name_ and _Help_. Second, select one of four types:
+_counter_, _gauge_, _histogram_, or _summary_.[^m1] Third, register it inside
+the function _Register()_. This will be invoked in _main()_.
+```go
+// internal/metrics/metrics.go
+package metrics
+
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var readAuthorOpts = prometheus.CounterOpts{
+	Name: "read_author_count",
+	Help: "amount readAuthor requests",
+}
+
+var ReadAuthorCounter = prometheus.NewCounter(readAuthorOpts)
+
+func Register() {
+	prometheus.MustRegister(ReadAuthorCounter)
+}
+```
+
+Finally, increment the counter with the method _Inc()_ inside a HTTP Handler.
+```go
+// internal/server/routes_features_v1.go
+package server
+// abbreviated for clarity...
+
+import "vamos/internal/metrics"
+
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+	metrics.ReadAuthorCounter.Inc()
+	surname := req.PathValue("surname")
+    // skipping the rest of the body...
+}
+```
+
+Observe the new data on the _/metrics_ route.
+```bash
+~/vamos $ curl localhost:8080/metrics
+# abbreviated for clarity...
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 0
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP read_author_count amount readAuthor requests
+# TYPE read_author_count counter
+read_author_count 0
+```
 
 
 ### Health Record
@@ -586,7 +726,7 @@ func main() {
 Signal 15 allows the program to close listening connections and idle connections
 while awaiting active connections. This is essential in a dynamic environment
 like a _Kubernetes_ cluster. A kubelet transmits Signal 15 to a container and
-pods wait 30 seconds for application cleanup.[^r1]
+pods wait 30 seconds for application cleanup.[^k1]
 ```go
 // main.go
 package main
@@ -650,6 +790,38 @@ return.
 
 
 ## Operate
+
+### Metrics
+Metrics are created by _Prometheus_ in the package _metrics_ in the file
+_/internal/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The
+package captures go runtime metrics, e.g., *go_threads*, *go_goroutines*,
+etc.[^m2]
+
+New metrics needs to be registered, so they can be activated in _main()_.
+```go
+// internal/metrics/metrics.go
+package metrics
+// abbreviated for clarity...
+
+import "github.com/prometheus/client_golang/prometheus"
+
+func Register() {
+	prometheus.MustRegister(ReadAuthorCounter)
+}
+```
+
+The _main()_ function will invoke the public _Register()_ function.
+```go
+// main.go
+package main
+// abbreviated for clarity...
+
+import "vamos/internal/metrics"
+
+func main() {
+	metrics.Register()
+}
+```
 
 
 ### Logging Configuration
@@ -840,7 +1012,10 @@ data for review by developers & operations staff.
 [^d2]: https://docs.sqlc.dev/en/stable/tutorials/getting-started-postgresql.html
 [^b1]: https://pkg.go.dev/cmd/link
 [^o1]: https://rednafi.com/go/dysfunctional_options_pattern/#functional-options-pattern
-[^r1]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow
+[^k1]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow
 [^s1]: https://pkg.go.dev/net/http#Server.Shutdown
 [^t1]: https://pkg.go.dev/time#NewTicker
 [^i1]: https://pkg.go.dev/runtime/pprof#WriteHeapProfile
+[^m1]: https://prometheus.io/docs/tutorials/understanding_metric_types/
+[^m2]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#hdr-Advanced_Uses_of_the_Registry
+[^r1]: https://tip.golang.org/doc/go1.22#enhanced_routing_patterns
