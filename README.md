@@ -921,6 +921,11 @@ return.
 
 
 ## Operate
+Two environmental variables are needed by the application to read a
+configuration file and access storage of sensitive credentials.
+```bash
+~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+```
 
 ### Metrics
 Metrics are created by _Prometheus_ in the package _metrics_ in the file
