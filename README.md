@@ -668,6 +668,9 @@ import (
 var AppVersion string
 ```
 
+
+## Testing
+
 ### Native Functions & Discrete Packages
 Three natively written functions determine equality, the absence of errors, and
 truth. One less dependency in the application. Below is an example of a testing
@@ -709,6 +712,98 @@ functions & fields can be tested. This encourages _black box_ testing and clean
 code.
 
 
+### Integration Tests
+A few steps are required to test interaction with a database.
+1. Apply SQL commands to change the local development database.
+2. Generate Go code in _sqlc/data/_ to interact with updated database.
+3. Run Go tests marked _integration_.
+4. Reverse SQL commands.
+
+It is possible to write code into a *_test_ package that can create tables,
+insert sample data, and then drop tables whenever a test is launched. Errors can
+force the test to halt and leave the database with the new state without
+reversing it. For this reason, it is easier to rely on a tool outside of the
+application test suite to create and delete Postgres tables. I rely on
+_migrate_. However, I prefer using code in the test suite to insert sample data.
+
+Use a _make_ command to easily perform the aforementioned tasks.
+```bash
+~/vamos $ make test_database
+```
+
+#### Test Suite Setup & Teardown
+The application will amend the test suite by first repositioning the root of a
+test executable in order to read files that provide sample data and the
+configuration file. Then the test suite will write data to the database, then
+run the test functions. Lastly, the report is offered.
+```go
+// internal/data/rdbms/rdbms_int_test.go
+package rdbms_test
+// abbreviated for clarity...
+
+func TestMain(m *testing.M) {
+	os.Setenv("APP_ENV", "DEV")
+	change_to_project_root()
+	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
+
+	// Setup common resource for all integration tests in only this package.
+	dbErr := createTestTable(timer)
+	if dbErr != nil {
+		panic(dbErr)
+	}
+	os.Unsetenv("APP_ENV")
+
+	code := m.Run()
+	os.Exit(code)
+}
+```
+
+The first function tested is the one that creates a connection pool. No other
+test runs concurrently in this moment. The environment inside the test is
+adjusted to induce reading configuration data for the _development_ environment.
+```go
+func Test_ConnectDB(t *testing.T) {
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
+	db, dbErr := ConnectDB(config.Read(), TEST_DB_POS)
+	defer db.Close()
+	Ok(t, dbErr)
+}
+```
+
+To hasten the test suite, a different set of functions that perform _read_
+operations are executed concurrently. And they rely on a common connection pool
+created in the same test group. The final action of the test group is to close
+the connection pool.
+```go
+func Test_ReadingData(t *testing.T) {
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
+
+	db, _ := ConnectDB(config.Read(), TEST_DB_POS)
+	q := FirstDB_AdoptQueries(db)
+
+	timer, _ := context.WithTimeout(context.Background(), TIMEOUT_READ)
+
+	t.Run("Read one author", func(t *testing.T) {
+		readOneAuthor(t, q, timer)
+	})
+
+	t.Run("Read many authors", func(t *testing.T) {
+		readManyAuthors(t, q, timer)
+	})
+
+	t.Run("Read most productive author", func(t *testing.T) {
+		readMostProductiveAuthor(t, q, timer)
+	})
+
+	t.Run("Read most productive author & book", func(t *testing.T) {
+		readMostProductiveAuthorAndBook(t, q, timer)
+	})
+
+	t.Cleanup(func() { db.Close() })
+}
+```
 
 
 ## Reliable Qualities
