@@ -81,7 +81,7 @@ A special *.container* file is read from a user directory named
 *.config/containers/systemd/* in the VM by a _podman_ tool named _quadlet_. And
 _quadlet_ parses the file to produce a *systemD service* file. The resulting
 *.service* file can download a container image and run it. More details can be
-studied in the _makefile_ under the command _podman_create_vm.
+studied in the _makefile_ under the command _podman_create_vm_.
 
 The _quadlet .container_ file includes a few commands commonly used to run
 containers in both _Docker_ and _podman_.
@@ -375,7 +375,7 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 ```
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
-### HTTP Handlers & Databases
+### HTTP Handlers, Databases, & Errors
 Developers can focus on the file *internal/server/routes_features_v1.go* to
 create RESTful features.
 
@@ -383,53 +383,99 @@ Dependency injection is the technique used to provide database handles to the
 HTTP handlers on the web server. Handlers are simply methods of the struct
 _Backbone_. Access a Postgres database through a _Queries_ struct residing in
 the _Backbone_ field named _FirstDB_.
+
+A custom func type named _errHandler_ has been created to make responding to
+HTTP requests feel like idiomatic Go with a returned _error_. The usual work
+performed by a HTTP Handler, such as reading data from a database, will be done
+inside an _errHandler_.
 ```go
 // internal/server/routes_features_v1.go
 package server
 // abbreviated for clarity...
 
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+// Similar to the http.HandlerFunc, but returns an error.
+type errHandler func(http.ResponseWriter, *http.Request) error
+
+// readAuthor conforms to the signature of errHandler and feels idiomatic.
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
 	defer cancel()
 
-	result, _ := b.FirstDB.GetAuthor(timer, surname)
+	result, err := b.FirstDB.GetAuthor(timer, surname)
+
+    // No need to hande the error inside the body of this modified handler.
+    // Simply return it.
+	if err != nil {
+        return err
+	}
+
 	w.Write([]byte(result.Name))
+	return nil
 }
 ```
 
 
-### Add HTTP Handler to Router
-Inside the package _server_ in _internal/server/routes_features_v1.go_, add
-the new HTTP Handler to the router by including it in the private function
-_addFeaturesV1_.
+### Add New errHandler to Router
+The returned _error_ needs to be managed & recorded by the function _eHand_. The
+_errHandler_ needs to be wrapped by _eHand_ to conform to the _http.HandlerFunc_
+interface and be accepted by the router.
+
+Inside the package _server_ in _internal/server/routes_features_v1.go_, add the
+wrapped errHandler to the router in the private function _addFeaturesV1_.
 
 Select the HTTP method that is most appropriate for the writing and reading of
 data. The ability to select _GET_ or _POST_ as an argument in parameter
 _pattern_ is a new feature of the language in version 1.22.[^r1]
-
 ```go
 // internal/server/routes_features_v1.go
 package server
 // abbreviated for clarity...
 
 func addFeaturesV1(router *http.ServeMux, b *Backbone) {
-	rAuthorHandler := http.HandlerFunc(b.readAuthor)
+	rAuthorHandler := b.eHand(b.readAuthor)
 	router.Handle("GET /author/{surname}", rAuthorHandler)
+}
+
+func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+        // f is the method b.readAuthor
+		err := f(w, req)
+
+        // Error management begins here.
+        // 1) Did the client cancel the request? No response needed.
+        // 2) Did the request exceed a timer?
+        // 3) Did the database simply lack the data? Not really an error.
+        // 4) Mask unanticipated errors with a 503.
+		if err != nil {
+			switch {
+			case errors.Is(err, context.Canceled):
+				b.Logger.Error("HTTP", "status", StatusClientClosed)
+			case errors.Is(err, context.DeadlineExceeded):
+				b.Logger.Error("HTTP", "status", http.StatusRequestTimeout)
+				http.Error(w, "timeout", http.StatusRequestTimeout)
+			case errors.Is(err, sql.ErrNoRows):
+				w.WriteHeader(http.StatusNoContent)
+			default:
+				b.Logger.Error("HTTP", "err", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}
+	}
 }
 ```
 
 
 ### Logs
 Inside a HTTP handler, record errors and extra data by simply invoking
-_b.Logger.Info(topic, key, value)_.
+_b.Logger.Error(topic, key, value)_.
 ```go
 //internal/server/routes_features_v1.go
 package server
 // abbreviated for clarity...
 
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
@@ -438,18 +484,8 @@ func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
 	result, err := b.FirstDB.GetAuthor(timer, surname)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, context.Canceled):
-			b.Logger.Error("readAuthor", "status", StatusClientClosed)
-		case errors.Is(err, context.DeadlineExceeded):
-			b.Logger.Error("readAuthor", "status", http.StatusRequestTimeout)
-			http.Error(w, "timeout", http.StatusRequestTimeout)
-		case errors.Is(err, sql.ErrNoRows):
-			w.WriteHeader(http.StatusNoContent)
-		default:
-			b.Logger.Error("readAuthor", "err", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+        b.Logger.Error("readAuthor", "msg", err.Error())
+        return err
 	}
 
 	w.Write([]byte(result.Name))
@@ -491,7 +527,7 @@ package server
 
 import "vamos/internal/metrics"
 
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) {
+func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 	metrics.ReadAuthorCounter.Inc()
 	surname := req.PathValue("surname")
     // skipping the rest of the body...
