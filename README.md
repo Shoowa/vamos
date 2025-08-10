@@ -584,7 +584,7 @@ The answer is then provided as a HTTP Header -- either 204 or 503.
 package server
 // abbreviated for clarity...
 
-func (b *Backbone) health(w http.ResponseWriter, r *http.Request) {
+func (b *Backbone) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	status := b.Health.PassFail()
 
 	if status {

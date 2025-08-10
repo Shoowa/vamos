@@ -9,13 +9,13 @@ import (
 // addOperationalRoutes adds health checks and metrics to the router.
 func addOperationalRoutes(router *http.ServeMux, b *Backbone) {
 
-	healthCheck := http.HandlerFunc(b.health)
+	healthCheck := http.HandlerFunc(b.Healthcheck)
 	router.HandleFunc("GET /health", healthCheck)
 
 	router.Handle("GET /metrics", promhttp.Handler())
 }
 
-func (b *Backbone) health(w http.ResponseWriter, r *http.Request) {
+func (b *Backbone) Healthcheck(w http.ResponseWriter, r *http.Request) {
 	status := b.Health.PassFail()
 
 	if status {
