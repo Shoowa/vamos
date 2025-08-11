@@ -3,27 +3,26 @@
 package server_test
 
 import (
-	"log/slog"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 
-	. "vamos/internal/server"
 	. "vamos/internal/testhelper"
 )
 
+func TestMain(m *testing.M) {
+	Change_to_project_root()
+	code := m.Run()
+	os.Exit(code)
+}
+
 func Test_Healthcheck_Initial_One_Resource_Down(t *testing.T) {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	b := NewBackbone(WithLogger(logger))
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
 
-	rec := httptest.NewRecorder()
-	r, err := http.NewRequest(http.MethodGet, "/health", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b.Healthcheck(rec, r)
+	srv := CreateTestServer(t)
 
-	result := rec.Result()
-	Equals(t, http.StatusServiceUnavailable, result.StatusCode)
+	code, _, _ := srv.Get(t, "/health")
+	Equals(t, http.StatusServiceUnavailable, code)
+	t.Cleanup(func() { srv.Close() })
 }
