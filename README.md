@@ -747,7 +747,7 @@ func TestMain(m *testing.M) {
 	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 
 	// Setup common resource for all integration tests in only this package.
-	dbErr := createTestTable(timer)
+	dbErr := CreateTestTable(timer)
 	if dbErr != nil {
 		panic(dbErr)
 	}

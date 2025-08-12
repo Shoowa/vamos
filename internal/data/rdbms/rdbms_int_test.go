@@ -12,52 +12,13 @@ import (
 	. "vamos/internal/data/rdbms"
 	. "vamos/internal/testhelper"
 	"vamos/sqlc/data/first"
-
-	"github.com/jackc/pgx/v5"
 )
 
 const (
 	TIMEOUT_TEST = time.Second * 1
 	TIMEOUT_READ = time.Second * 3
-	TEST_DB_POS  = 0
-	FAKE_DATA    = "_testdata/fake_data_db1.sql"
 	AUTHOR       = "Chaucer"
 )
-
-func createTestTable(timer context.Context) error {
-	// Read configuration information to establish connection.
-	dbConfig := WhichDB(config.Read(), TEST_DB_POS)
-	credString, credErr := Credentials(dbConfig)
-	if credErr != nil {
-		return credErr
-	}
-
-	// Set timer for opening a connection.
-	openTimer, cancelOpen := context.WithTimeout(timer, TIMEOUT_TEST)
-	defer cancelOpen()
-
-	// Use a single connection. This isn't a pool.
-	db, connErr := pgx.Connect(openTimer, credString)
-	if connErr != nil {
-		return connErr
-	}
-
-	// Set timer for closing the connection.
-	closeTimer, cancelClose := context.WithTimeout(timer, TIMEOUT_TEST)
-	defer cancelClose()
-	defer db.Close(closeTimer)
-
-	// Set timer for issuing SQL command that writes data into the table.
-	cmdTimer, cancelCommand := context.WithTimeout(timer, time.Second*3)
-	defer cancelCommand()
-
-	fakeData, fileErr := os.ReadFile(FAKE_DATA)
-	if fileErr != nil {
-		return fileErr
-	}
-	db.Exec(cmdTimer, string(fakeData))
-	return nil
-}
 
 func TestMain(m *testing.M) {
 	os.Setenv("APP_ENV", "DEV")
@@ -65,7 +26,7 @@ func TestMain(m *testing.M) {
 	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 
 	// Setup common resource for all integration tests in only this package.
-	dbErr := createTestTable(timer)
+	dbErr := CreateTestTable(timer)
 	if dbErr != nil {
 		panic(dbErr)
 	}

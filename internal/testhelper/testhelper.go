@@ -2,6 +2,7 @@ package testhelper
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,15 +15,20 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"vamos/internal/config"
 	"vamos/internal/data/rdbms"
 	"vamos/internal/server"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const (
-	DB_FIRST = 0
+	TEST_DB_POS  = 0
+	TIMEOUT = time.Second * 1
 	PROJECT  = "vamos"
+	FAKE_DATA    = "_testdata/fake_data_db1.sql"
 )
 
 // assert fails the test if the condition is false.
@@ -63,11 +69,46 @@ func Change_to_project_root() {
 	}
 }
 
+func CreateTestTable(timer context.Context) error {
+	// Read configuration information to establish connection.
+	dbConfig := rdbms.WhichDB(config.Read(), TEST_DB_POS)
+	credString, credErr := rdbms.Credentials(dbConfig)
+	if credErr != nil {
+		return credErr
+	}
+
+	// Set timer for opening a connection.
+	openTimer, cancelOpen := context.WithTimeout(timer, TIMEOUT)
+	defer cancelOpen()
+
+	// Use a single connection. This isn't a pool.
+	db, connErr := pgx.Connect(openTimer, credString)
+	if connErr != nil {
+		return connErr
+	}
+
+	// Set timer for closing the connection.
+	closeTimer, cancelClose := context.WithTimeout(timer, TIMEOUT)
+	defer cancelClose()
+	defer db.Close(closeTimer)
+
+	// Set timer for issuing SQL command that writes data into the table.
+	cmdTimer, cancelCommand := context.WithTimeout(timer, time.Second*3)
+	defer cancelCommand()
+
+	fakeData, fileErr := os.ReadFile(FAKE_DATA)
+	if fileErr != nil {
+		return fileErr
+	}
+	db.Exec(cmdTimer, string(fakeData))
+	return nil
+}
+
 func createRouter(t *testing.T) *server.Bundle {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
-	db1, db1Err := rdbms.ConnectDB(cfg, DB_FIRST)
+	db1, db1Err := rdbms.ConnectDB(cfg, TEST_DB_POS)
 	if db1Err != nil {
 		logger.Error(db1Err.Error())
 		panic(db1Err)
