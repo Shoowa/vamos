@@ -80,8 +80,8 @@ func Test_ConnectDB(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
 	db, dbErr := ConnectDB(config.Read(), TEST_DB_POS)
-	defer db.Close()
 	Ok(t, dbErr)
+	t.Cleanup(func() { db.Close() })
 }
 
 // Second, test reading data concurrently.
