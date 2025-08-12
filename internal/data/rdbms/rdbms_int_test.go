@@ -5,8 +5,6 @@ package rdbms_test
 import (
 	"context"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -21,22 +19,10 @@ import (
 const (
 	TIMEOUT_TEST = time.Second * 1
 	TIMEOUT_READ = time.Second * 3
-	PROJECT      = "vamos"
 	TEST_DB_POS  = 0
 	FAKE_DATA    = "_testdata/fake_data_db1.sql"
 	AUTHOR       = "Chaucer"
 )
-
-func change_to_project_root() {
-	wd, _ := os.Getwd()
-	for !strings.HasSuffix(wd, PROJECT) {
-		wd = filepath.Dir(wd)
-	}
-	changeErr := os.Chdir(wd)
-	if changeErr != nil {
-		panic(changeErr.Error())
-	}
-}
 
 func createTestTable(timer context.Context) error {
 	// Read configuration information to establish connection.
@@ -75,7 +61,7 @@ func createTestTable(timer context.Context) error {
 
 func TestMain(m *testing.M) {
 	os.Setenv("APP_ENV", "DEV")
-	change_to_project_root()
+	Change_to_project_root()
 	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 
 	// Setup common resource for all integration tests in only this package.

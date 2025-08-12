@@ -743,7 +743,7 @@ package rdbms_test
 
 func TestMain(m *testing.M) {
 	os.Setenv("APP_ENV", "DEV")
-	change_to_project_root()
+	Change_to_project_root()
 	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 
 	// Setup common resource for all integration tests in only this package.
