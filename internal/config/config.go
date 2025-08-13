@@ -83,9 +83,9 @@ type HttpServer struct {
 }
 
 type Health struct {
-	PingDbTimer int `yaml:"ping_db_timer"`
-	HeapTimer   int `yaml:"heap_timer"`
-	HeapSize    uint64 `yaml:"heap_size"`
-	RoutTimer int `yaml:"rout_timer"`
-	RoutinesPerCore int `yaml:"routines_per_core"`
+	PingDbTimer     int    `yaml:"ping_db_timer"`
+	HeapTimer       int    `yaml:"heap_timer"`
+	HeapSize        uint64 `yaml:"heap_size"`
+	RoutTimer       int    `yaml:"rout_timer"`
+	RoutinesPerCore int    `yaml:"routines_per_core"`
 }

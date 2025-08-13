@@ -26,8 +26,8 @@ func beep(seconds time.Duration, task func()) {
 
 // Health offers summarized data.
 type Health struct {
-	Rdbms bool
-	Heap  bool
+	Rdbms    bool
+	Heap     bool
 	Routines bool
 }
 

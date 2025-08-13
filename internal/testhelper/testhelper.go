@@ -25,10 +25,10 @@ import (
 )
 
 const (
-	TEST_DB_POS  = 0
-	TIMEOUT = time.Second * 1
-	PROJECT  = "vamos"
-	FAKE_DATA    = "_testdata/fake_data_db1.sql"
+	TEST_DB_POS = 0
+	TIMEOUT     = time.Second * 1
+	PROJECT     = "vamos"
+	FAKE_DATA   = "_testdata/fake_data_db1.sql"
 )
 
 // assert fails the test if the condition is false.
