@@ -19,7 +19,7 @@ import (
 
 	"vamos/internal/config"
 	"vamos/internal/data/rdbms"
-	"vamos/internal/server"
+	"vamos/internal/router"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -104,7 +104,7 @@ func CreateTestTable(timer context.Context) error {
 	return nil
 }
 
-func createRouter(t *testing.T) *server.Bundle {
+func createRouter(t *testing.T) *router.Bundle {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
@@ -114,13 +114,13 @@ func createRouter(t *testing.T) *server.Bundle {
 		panic(db1Err)
 	}
 
-	backbone := server.NewBackbone(
-		server.WithLogger(logger),
-		server.WithQueryHandleForFirstDB(db1),
-		server.WithDbHandle(db1),
+	backbone := router.NewBackbone(
+		router.WithLogger(logger),
+		router.WithQueryHandleForFirstDB(db1),
+		router.WithDbHandle(db1),
 	)
 
-	router := server.NewRouter(backbone)
+	router := router.NewRouter(backbone)
 
 	return router
 }

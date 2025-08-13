@@ -1,4 +1,5 @@
-package server
+// Package ROUTER provides a sanely configured router.
+package router
 
 import (
 	"net/http"

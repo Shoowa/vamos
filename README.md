@@ -291,20 +291,20 @@ package main
 func main() {
 	db1, _ := rdbms.ConnectDB(cfg, DB_FIRST)
 
-	backbone := server.NewBackbone(
-		server.WithLogger(srvLogger),
-		server.WithQueryHandleForFirstDB(db1),
+	backbone := router.NewBackbone(
+		router.WithLogger(srvLogger),
+		router.WithQueryHandleForFirstDB(db1),
 	)
 
-	webserver := server.NewServer(cfg, backbone, baseCtx)
+	router := router.NewRouter(backbone)
 }
 ```
 
 The _Backbone struct_ holds the dependencies needed by the HTTP Handlers. It
-resides in the _Server_ package.
+resides in the _Router_ package.
 ```go
-// internal/server/backbone.go
-package server
+// internal/router/backbone.go
+package router
 // abbreviated for clarity...
 
 func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
@@ -376,7 +376,7 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
 ### HTTP Handlers, Databases, & Errors
-Developers can focus on the file *internal/server/routes_features_v1.go* to
+Developers can focus on the file *internal/router/routes_features_v1.go* to
 create RESTful features.
 
 Dependency injection is the technique used to provide database handles to the
@@ -389,8 +389,8 @@ HTTP requests feel like idiomatic Go with a returned _error_. The usual work
 performed by a HTTP Handler, such as reading data from a database, will be done
 inside an _errHandler_.
 ```go
-// internal/server/routes_features_v1.go
-package server
+// internal/router/routes_features_v1.go
+package router
 // abbreviated for clarity...
 
 // Similar to the http.HandlerFunc, but returns an error.
@@ -422,15 +422,15 @@ The returned _error_ needs to be managed & recorded by the function _eHand_. The
 _errHandler_ needs to be wrapped by _eHand_ to conform to the _http.HandlerFunc_
 interface and be accepted by the router.
 
-Inside the package _server_ in _internal/server/routes_features_v1.go_, add the
+Inside the package _router_ in _internal/router/routes_features_v1.go_, add the
 wrapped errHandler to the router in the private function _addFeaturesV1_.
 
 Select the HTTP method that is most appropriate for the writing and reading of
 data. The ability to select _GET_ or _POST_ as an argument in parameter
 _pattern_ is a new feature of the language in version 1.22.[^r1]
 ```go
-// internal/server/routes_features_v1.go
-package server
+// internal/router/routes_features_v1.go
+package router
 // abbreviated for clarity...
 
 func addFeaturesV1(router *http.ServeMux, b *Backbone) {
@@ -471,8 +471,8 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 Inside a HTTP handler, record errors and extra data by simply invoking
 _b.Logger.Error(topic, key, value)_.
 ```go
-//internal/server/routes_features_v1.go
-package server
+//internal/router/routes_features_v1.go
+package router
 // abbreviated for clarity...
 
 func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
@@ -521,8 +521,8 @@ func Register() {
 
 Finally, increment the counter with the method _Inc()_ inside a HTTP Handler.
 ```go
-// internal/server/routes_features_v1.go
-package server
+// internal/router/routes_features_v1.go
+package router
 // abbreviated for clarity...
 
 import "vamos/internal/metrics"
@@ -556,8 +556,8 @@ dependencies, then answer. That flow of events doesn't happen in this web app.
 Instead, the web server responds to any request for health by simply reading
 from a custom struct named _Health_ that resides in _Backbone_.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 type Health struct {
@@ -569,8 +569,8 @@ _Health_ has several _boolean_ fields. Any request for the status of health is
 answered by a method that reads from these fields and evaluates the totality of
 the _boolean_ conditions.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 func (h *Health) PassFail() bool {
@@ -580,8 +580,8 @@ func (h *Health) PassFail() bool {
 
 The answer is then provided as a HTTP Header -- either 204 or 503.
 ```go
-// internal/server/routes_operations.go
-package server
+// internal/router/routes_operations.go
+package router
 // abbreviated for clarity...
 
 func (b *Backbone) Healthcheck(w http.ResponseWriter, r *http.Request) {
@@ -601,8 +601,8 @@ determines the condition of a resource is inserted into a timed loop inside a
 _go routine_. Notice the function named _checkHeapSize_ is an argument to the
 _beep_ function.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
@@ -619,8 +619,8 @@ enters a loop that awaits the signal. Upon receiving the signal, a function
 represented by the parameter _task_ is invoked. _checkHeapSize_ will be invoked
 as the _task_.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 func beep(seconds time.Duration, task func()) {
@@ -846,7 +846,7 @@ package main
 // abbreviated for clarity...
 
 func main() {
-	webserver := server.NewServer(cfg, backbone)
+	webserver := server.NewServer(cfg, router)
     go server.GracefulIgnition(webserver)
 
 	catchSigTerm()
@@ -900,7 +900,7 @@ any active connections.
 package server
 // abbreviated for clarity...
 
-func NewServer(cfg *config.Config, b *Backbone) *http.Server {
+func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 	base, stop := context.WithCancel(context.Background())
 
 	s := &http.Server{
@@ -1021,8 +1021,8 @@ inside HTTP handlers. The logger is actually transferred from _Backbone_ to
 _Bundle_. The _Bundle_ also acquires the STDLIB router _http.ServeMux_. It holds
 both the logger and the router.
 ```go
-// internal/server/router.go
-package server
+// internal/router/router.go
+package router
 // abbreviated for clarity...
 
 func NewRouter(b *Backbone) *Bundle {
@@ -1032,12 +1032,12 @@ func NewRouter(b *Backbone) *Bundle {
 }
 ```
 
-The middleware is configured in _internal/server/middleware.go_ as a method on
+The middleware is configured in _internal/router/middleware.go_ as a method on
 _Bundle_ that adopts the _http.Handler interface_ from the router by
 implementing _ServeHTTP(http.ReponseWriter, *http.Request)_.
 ```go
-// internal/server/middleware.go
-package server
+// internal/router/middleware.go
+package router
 // abbreviated for clarity...
 
 func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -1061,10 +1061,10 @@ By satisfying this _interface_, the _http.Server_ can treat _Bundle_ as a router
 package server
 // abbreviated for clarity...
 
-func NewServer(cfg *config.Config, b *Backbone) *http.Server {
+func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 	s := &http.Server{
 		Addr:         ":" + cfg.HttpServer.Port,
-		Handler:      NewRouter(b), // Returns *Bundle
+		Handler:      router,
 	}
 	return s
 }
@@ -1086,8 +1086,8 @@ A _Backbone_ field named _HeapSnapshot_ holds a pointer to a _buffer_ that
 collects information generated by the
 _runtime/pprof/WriteHeapProfile(io.Writer)_ function.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 type Backbone struct {
@@ -1103,8 +1103,8 @@ The _Backbone_ struct implements the method _Write([]byte) (n int, err error)_
 to comply with the _Writer interface_ expected by _WriteHeapProfile_.[^i1] And a
 custom implemention resets the buffer before each write to avoid a memory leak.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 func (b *Backbone) Write(p []byte) (n int, err error) {
@@ -1116,8 +1116,8 @@ func (b *Backbone) Write(p []byte) (n int, err error) {
 After a configured threshold for memory is surpassed, heap data will be
 gathered.
 ```go
-// internal/server/operations.go
-package server
+// internal/router/operations.go
+package router
 // abbreviated for clarity...
 
 func (b *Backbone) CheckHeapSize(threshold uint64) {

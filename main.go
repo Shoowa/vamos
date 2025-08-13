@@ -9,6 +9,7 @@ import (
 	"vamos/internal/data/rdbms"
 	"vamos/internal/logging"
 	"vamos/internal/metrics"
+	"vamos/internal/router"
 	"vamos/internal/server"
 )
 
@@ -34,17 +35,20 @@ func main() {
 	// child logger for webserver
 	srvLogger := logger.WithGroup("server")
 
-	backbone := server.NewBackbone(
-		server.WithLogger(srvLogger),
-		server.WithQueryHandleForFirstDB(db1),
-		server.WithDbHandle(db1),
+	backbone := router.NewBackbone(
+		router.WithLogger(srvLogger),
+		router.WithQueryHandleForFirstDB(db1),
+		router.WithDbHandle(db1),
 	)
 
 	// Launch background health checks.
 	backbone.SetupHealthChecks(cfg)
 
+	// Create router with dependencies and handlers.
+	router := router.NewRouter(backbone)
+
 	// Create a webserver with accessible dependencies.
-	webserver := server.NewServer(cfg, backbone)
+	webserver := server.NewServer(cfg, router)
 
 	// Activate webserver.
 	go server.GracefulIgnition(webserver)

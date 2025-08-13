@@ -1,6 +1,6 @@
 //go:build !integration
 
-package server_test
+package router_test
 
 import (
 	"net/http"
