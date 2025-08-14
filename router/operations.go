@@ -6,7 +6,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"vamos/internal/config"
+	"vamos/config"
 )
 
 const TIMEOUT_PING = time.Millisecond * 299

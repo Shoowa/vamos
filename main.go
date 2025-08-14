@@ -5,12 +5,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"vamos/internal/config"
-	"vamos/internal/data/rdbms"
-	"vamos/internal/logging"
-	"vamos/internal/metrics"
-	"vamos/internal/router"
-	"vamos/internal/server"
+	"vamos/config"
+	"vamos/data/rdbms"
+	"vamos/logging"
+	"vamos/metrics"
+	"vamos/router"
+	"vamos/server"
 )
 
 const (

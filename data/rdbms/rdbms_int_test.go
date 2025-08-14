@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"vamos/internal/config"
-	. "vamos/internal/data/rdbms"
-	. "vamos/internal/testhelper"
+	"vamos/config"
+	. "vamos/data/rdbms"
 	"vamos/sqlc/data/first"
+	. "vamos/testhelper"
 )
 
 const (

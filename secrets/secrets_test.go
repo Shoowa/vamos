@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"vamos/internal/config"
-	. "vamos/internal/secrets"
-	. "vamos/internal/testhelper"
+	"vamos/config"
+	. "vamos/secrets"
+	. "vamos/testhelper"
 )
 
 func TestMain(m *testing.M) {

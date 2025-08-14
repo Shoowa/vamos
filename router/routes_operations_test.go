@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	. "vamos/internal/testhelper"
+	. "vamos/testhelper"
 )
 
 func TestMain(m *testing.M) {

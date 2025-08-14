@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"vamos/internal/data/rdbms"
+	"vamos/data/rdbms"
 	"vamos/sqlc/data/first"
 )
 

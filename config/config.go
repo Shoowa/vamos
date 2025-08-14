@@ -10,9 +10,9 @@ var AppVersion string
 
 // Read from either the dev or prod file.
 func Read() *Config {
-	eFile := "internal/config/prod.yml"
+	eFile := "config/prod.yml"
 	if os.Getenv("APP_ENV") == "DEV" {
-		eFile = "internal/config/dev.yml"
+		eFile = "config/dev.yml"
 	}
 
 	ymlFile, errFile := os.ReadFile(eFile)

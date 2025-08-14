@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"vamos/internal/metrics"
+	"vamos/metrics"
 )
 
 const (

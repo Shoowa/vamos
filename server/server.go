@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"vamos/internal/config"
+	"vamos/config"
 )
 
 const GRACE_PERIOD = time.Second * 15

@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"vamos/internal/config"
-	"vamos/internal/secrets"
+	"vamos/config"
+	"vamos/secrets"
 	"vamos/sqlc/data/first"
 )
 

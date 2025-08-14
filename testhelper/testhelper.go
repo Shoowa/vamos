@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"vamos/internal/config"
-	"vamos/internal/data/rdbms"
-	"vamos/internal/router"
+	"vamos/config"
+	"vamos/data/rdbms"
+	"vamos/router"
 
 	"github.com/jackc/pgx/v5"
 )
