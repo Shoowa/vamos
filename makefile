@@ -95,14 +95,14 @@ migrate_test_down:
 ###### SECRETS TEST ########
 ############################
 secrets_test:
-	@go test ./internal/secrets -count=1 --tags=integration
+	@go test ./secrets -count=1 --tags=integration
 
 
 #########################################
 ###### POSTGRES INTEGRATION TEST ########
 #########################################
 postgres_test:
-	-@go test ./internal/data/rdbms -count=1 --tags=integration
+	-@go test ./data/rdbms -count=1 --tags=integration
 
 test_database: migrate_test_up generate_db_code postgres_test migrate_test_down
 
