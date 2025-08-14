@@ -1,10 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"vamos/config"
 	"vamos/data/rdbms"
 	"vamos/logging"
@@ -55,7 +51,7 @@ func main() {
 	logger.Info("HTTP Server activated")
 
 	// Listen for termination signal. This is a blocking call.
-	catchSigTerm()
+	server.CatchSigTerm()
 	logger.Info("Begin decommissioning application")
 
 	// After receiving signal, begin deactivating server.
@@ -70,13 +66,4 @@ func main() {
 		}
 	}
 	logger.Info("HTTP Server halted")
-}
-
-// CatchSigTerm creates a buffered message queue awaiting an OS signal. The Main
-// routine will block while the channel awaits the signal. After receiving a
-// signal, the Main routine will shutdown the server.
-func catchSigTerm() {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
 }

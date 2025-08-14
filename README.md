@@ -849,7 +849,7 @@ func main() {
 	webserver := server.NewServer(cfg, router)
     go server.GracefulIgnition(webserver)
 
-	catchSigTerm()
+	server.CatchSigTerm()
 	server.GracefulShutdown(webserver)
 }
 ```
@@ -863,7 +863,7 @@ pods wait 30 seconds for application cleanup.[^k1]
 package main
 // abbreviated for clarity...
 
-func catchSigTerm() {
+func CatchSigTerm() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan

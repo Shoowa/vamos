@@ -6,6 +6,9 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"vamos/config"
@@ -52,4 +55,13 @@ func GracefulShutdown(s *http.Server) error {
 		return err
 	}
 	return nil
+}
+
+// CatchSigTerm creates a buffered message queue awaiting an OS signal. The Main
+// routine will block while the channel awaits the signal. After receiving a
+// signal, the Main routine will shutdown the server.
+func CatchSigTerm() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
 }
