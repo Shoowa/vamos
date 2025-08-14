@@ -303,7 +303,7 @@ func main() {
 The _Backbone struct_ holds the dependencies needed by the HTTP Handlers. It
 resides in the _Router_ package.
 ```go
-// internal/router/backbone.go
+// router/backbone.go
 package router
 // abbreviated for clarity...
 
@@ -317,7 +317,7 @@ func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
 
 This particular function transfers the connection pool to _Queries_.
 ```go
-// internal/data/rdbms/rdbms.go
+// data/rdbms/rdbms.go
 package rdbms
 // abbreviated for clarity...
 
@@ -376,7 +376,7 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
 ### HTTP Handlers, Databases, & Errors
-Developers can focus on the file *internal/router/routes_features_v1.go* to
+Developers can focus on the file *router/routes_features_v1.go* to
 create RESTful features.
 
 Dependency injection is the technique used to provide database handles to the
@@ -389,7 +389,7 @@ HTTP requests feel like idiomatic Go with a returned _error_. The usual work
 performed by a HTTP Handler, such as reading data from a database, will be done
 inside an _errHandler_.
 ```go
-// internal/router/routes_features_v1.go
+// router/routes_features_v1.go
 package router
 // abbreviated for clarity...
 
@@ -422,14 +422,14 @@ The returned _error_ needs to be managed & recorded by the function _eHand_. The
 _errHandler_ needs to be wrapped by _eHand_ to conform to the _http.HandlerFunc_
 interface and be accepted by the router.
 
-Inside the package _router_ in _internal/router/routes_features_v1.go_, add the
+Inside the package _router_ in _router/routes_features_v1.go_, add the
 wrapped errHandler to the router in the private function _addFeaturesV1_.
 
 Select the HTTP method that is most appropriate for the writing and reading of
 data. The ability to select _GET_ or _POST_ as an argument in parameter
 _pattern_ is a new feature of the language in version 1.22.[^r1]
 ```go
-// internal/router/routes_features_v1.go
+// router/routes_features_v1.go
 package router
 // abbreviated for clarity...
 
@@ -471,7 +471,7 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 Inside a HTTP handler, record errors and extra data by simply invoking
 _b.Logger.Error(topic, key, value)_.
 ```go
-//internal/router/routes_features_v1.go
+//router/routes_features_v1.go
 package router
 // abbreviated for clarity...
 
@@ -500,7 +500,7 @@ First, define the options _Name_ and _Help_. Second, select one of four types:
 _counter_, _gauge_, _histogram_, or _summary_.[^m1] Third, register it inside
 the function _Register()_. This will be invoked in _main()_.
 ```go
-// internal/metrics/metrics.go
+// metrics/metrics.go
 package metrics
 
 import (
@@ -521,11 +521,11 @@ func Register() {
 
 Finally, increment the counter with the method _Inc()_ inside a HTTP Handler.
 ```go
-// internal/router/routes_features_v1.go
+// router/routes_features_v1.go
 package router
 // abbreviated for clarity...
 
-import "vamos/internal/metrics"
+import "vamos/metrics"
 
 func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 	metrics.ReadAuthorCounter.Inc()
@@ -556,7 +556,7 @@ dependencies, then answer. That flow of events doesn't happen in this web app.
 Instead, the web server responds to any request for health by simply reading
 from a custom struct named _Health_ that resides in _Backbone_.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -569,7 +569,7 @@ _Health_ has several _boolean_ fields. Any request for the status of health is
 answered by a method that reads from these fields and evaluates the totality of
 the _boolean_ conditions.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -580,7 +580,7 @@ func (h *Health) PassFail() bool {
 
 The answer is then provided as a HTTP Header -- either 204 or 503.
 ```go
-// internal/router/routes_operations.go
+// router/routes_operations.go
 package router
 // abbreviated for clarity...
 
@@ -601,7 +601,7 @@ determines the condition of a resource is inserted into a timed loop inside a
 _go routine_. Notice the function named _checkHeapSize_ is an argument to the
 _beep_ function.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -619,7 +619,7 @@ enters a loop that awaits the signal. Upon receiving the signal, a function
 represented by the parameter _task_ is invoked. _checkHeapSize_ will be invoked
 as the _task_.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -650,7 +650,7 @@ input to the build step. An informative record of Git Commits can aid any
 operator during an incident.
 
 ```bash
-~/vamos $ go build -v -ldflags="-s -X 'vamos/internal/config.AppVersion=v.0.0.0' " -o vamos
+~/vamos $ go build -v -ldflags="-s -X 'vamos/config.AppVersion=v.0.0.0' " -o vamos
 ```
 The linker flag _-s_ removes symbol table info and DWARF info to produce a
 smaller executable. And _-X_[^b1] sets the value of a _string_ variable named
@@ -676,7 +676,7 @@ Three natively written functions determine equality, the absence of errors, and
 truth. One less dependency in the application. Below is an example of a testing
 function residing in _testhelper.go_.
 ```go
-// internal/testhelper/testhelper.go
+// testhelper/testhelper.go
 func Equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
@@ -689,14 +689,14 @@ These functions can be invoked by a test package. Use the dot at the beginning
 of the import path to avoid prefacing every invocation with the name of the
 _testhelper_ package.
 ```go
-// internal/secrets/secrets.go
+// secrets/secrets.go
 package secrets_test
 
 import (
 	"testing"
 
-	. "vamos/internal/secrets"
-	. "vamos/internal/testhelper"
+	. "vamos/secrets"
+	. "vamos/testhelper"
 )
 
 func Test_Configuration(t *testing.T) {
@@ -737,7 +737,7 @@ test executable in order to read files that provide sample data and the
 configuration file. Then the test suite will write data to the database, then
 run the test functions. Lastly, the report is offered.
 ```go
-// internal/data/rdbms/rdbms_int_test.go
+// data/rdbms/rdbms_int_test.go
 package rdbms_test
 // abbreviated for clarity...
 
@@ -814,7 +814,7 @@ a  method named _BeforeConnect_. This method ensures that the connection pool
 can read fresh credentials, so it enables the security practice of revoking &
 rotating credentials.
 ```go
-// internal/data/rdbms/rdbms.go
+// data/rdbms/rdbms.go
 package rdbms
 // abbreviated for clarity...
 
@@ -874,7 +874,7 @@ After Signal 15 is received, _server.GracefulShutdown(webserver)_ is invoked.
 It wraps _http.Server.Shutdown(shutdownCtx)_ with a 15 second timer. And the
 cancellation function _stop()_ will also be invoked.
 ```go
-// internal/server/server.go
+// server/server.go
 package server
 // abbreviated for clarity...
 
@@ -896,7 +896,7 @@ _stop()_ was assigned to the server during configuration. It signals to all the
 child contexts derived from _base_ and used by the HTTP Handlers to terminate
 any active connections.
 ```go
-// internal/server/server.go
+// server/server.go
 package server
 // abbreviated for clarity...
 
@@ -929,13 +929,13 @@ configuration file and access storage of sensitive credentials.
 
 ### Metrics
 Metrics are created by _Prometheus_ in the package _metrics_ in the file
-_/internal/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The
+_/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The
 package captures go runtime metrics, e.g., *go_threads*, *go_goroutines*,
 etc.[^m2]
 
 New metrics needs to be registered, so they can be activated in _main()_.
 ```go
-// internal/metrics/metrics.go
+// metrics/metrics.go
 package metrics
 // abbreviated for clarity...
 
@@ -952,7 +952,7 @@ The _main()_ function will invoke the public _Register()_ function.
 package main
 // abbreviated for clarity...
 
-import "vamos/internal/metrics"
+import "vamos/metrics"
 
 func main() {
 	metrics.Register()
@@ -963,7 +963,7 @@ func main() {
 ### Logging Configuration
 Logging is configured as _debug_ in development or as _warn_ in production.
 ```yaml
-# internal/config/dev.yml
+# config/dev.yml
 ---
 logger:
   level: debug
@@ -971,7 +971,7 @@ logger:
 
 The level is read in _logging.go_.
 ```go
-// internal/logging/logging.go
+// logging/logging.go
 package logging
 
 func configure(cfg *config.Config) *slog.HandlerOptions {
@@ -991,7 +991,7 @@ The primary logger is configured to include two details that can aid anyone
 debugging an incident in production. The version of the language, and the
 version of the application. Every child logger inherits these details.
 ```go
-// internal/logging/logging.go
+// logging/logging.go
 package logging
 
 func CreateLogger(cfg *config.Config) *slog.Logger {
@@ -1021,7 +1021,7 @@ inside HTTP handlers. The logger is actually transferred from _Backbone_ to
 _Bundle_. The _Bundle_ also acquires the STDLIB router _http.ServeMux_. It holds
 both the logger and the router.
 ```go
-// internal/router/router.go
+// router/router.go
 package router
 // abbreviated for clarity...
 
@@ -1032,11 +1032,11 @@ func NewRouter(b *Backbone) *Bundle {
 }
 ```
 
-The middleware is configured in _internal/router/middleware.go_ as a method on
+The middleware is configured in _router/middleware.go_ as a method on
 _Bundle_ that adopts the _http.Handler interface_ from the router by
 implementing _ServeHTTP(http.ReponseWriter, *http.Request)_.
 ```go
-// internal/router/middleware.go
+// router/middleware.go
 package router
 // abbreviated for clarity...
 
@@ -1057,7 +1057,7 @@ to the regular router in _b.Router.ServeHTTP(w, req)_.
 
 By satisfying this _interface_, the _http.Server_ can treat _Bundle_ as a router.
 ```go
-// internal/server/server.go
+// server/server.go
 package server
 // abbreviated for clarity...
 
@@ -1086,7 +1086,7 @@ A _Backbone_ field named _HeapSnapshot_ holds a pointer to a _buffer_ that
 collects information generated by the
 _runtime/pprof/WriteHeapProfile(io.Writer)_ function.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -1103,7 +1103,7 @@ The _Backbone_ struct implements the method _Write([]byte) (n int, err error)_
 to comply with the _Writer interface_ expected by _WriteHeapProfile_.[^i1] And a
 custom implemention resets the buffer before each write to avoid a memory leak.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
@@ -1116,7 +1116,7 @@ func (b *Backbone) Write(p []byte) (n int, err error) {
 After a configured threshold for memory is surpassed, heap data will be
 gathered.
 ```go
-// internal/router/operations.go
+// router/operations.go
 package router
 // abbreviated for clarity...
 
