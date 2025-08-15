@@ -9,10 +9,10 @@ import (
 // enables the creation of a middleware for standardized logging.
 type Bundle struct {
 	Logger *slog.Logger
-	Router http.Handler
+	Router *http.ServeMux
 }
 
-func NewBundle(logger *slog.Logger, router http.Handler) *Bundle {
+func NewBundle(logger *slog.Logger, router *http.ServeMux) *Bundle {
 	return &Bundle{
 		Logger: logger,
 		Router: router,
