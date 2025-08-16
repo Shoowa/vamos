@@ -2,13 +2,23 @@ package router
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
+	"errors"
 	"log/slog"
+	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"vamos/data/rdbms"
 	"vamos/sqlc/data/first"
 )
+
+const (
+	StatusClientClosed = 499
+)
+
+type errHandler func(http.ResponseWriter, *http.Request) error
 
 type Option func(*Backbone)
 
@@ -54,5 +64,25 @@ func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
 func WithDbHandle(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
 		b.DbHandle = dbHandle
+	}
+}
+
+func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		err := f(w, req)
+		if err != nil {
+			switch {
+			case errors.Is(err, context.Canceled):
+				b.Logger.Error("HTTP", "status", StatusClientClosed)
+			case errors.Is(err, context.DeadlineExceeded):
+				b.Logger.Error("HTTP", "status", http.StatusRequestTimeout)
+				http.Error(w, "timeout", http.StatusRequestTimeout)
+			case errors.Is(err, sql.ErrNoRows):
+				w.WriteHeader(http.StatusNoContent)
+			default:
+				b.Logger.Error("HTTP", "err", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		}
 	}
 }
