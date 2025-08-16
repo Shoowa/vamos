@@ -28,3 +28,19 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	)
 	b.Router.ServeHTTP(w, req)
 }
+
+// Endpoint is a struct that can be used to create a menu of routes.
+type Endpoint struct {
+	VerbAndPath string
+	Handler     errHandler
+}
+
+// AddRoutes is a convenient method designed to read from a list of Endpoints
+// and add them to the http.ServeMux residing inside the Bundle struct. This
+// method also enforces that HTTP Handlers written by a downstream user must
+// return an error to conform to the errHandler type.
+func (b *Bundle) AddRoutes(routeMenu []Endpoint, deps *Backbone) {
+	for _, endpoint := range routeMenu {
+		b.Router.HandleFunc(endpoint.VerbAndPath, deps.eHand(endpoint.Handler))
+	}
+}
