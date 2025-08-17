@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 	"time"
-
-	"vamos/metrics"
 )
 
 const (
@@ -17,7 +15,6 @@ func addFeaturesV1(router *http.ServeMux, b *Backbone) {
 }
 
 func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
-	metrics.ReadAuthorCounter.Inc()
 	surname := req.PathValue("surname")
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
 	defer cancel()

@@ -4,7 +4,6 @@ import (
 	"vamos/config"
 	"vamos/data/rdbms"
 	"vamos/logging"
-	"vamos/metrics"
 	"vamos/router"
 	"vamos/server"
 )
@@ -24,9 +23,6 @@ func main() {
 		panic(db1Err)
 	}
 	defer db1.Close()
-
-	// Setup metrics.
-	metrics.Register()
 
 	// child logger for webserver
 	srvLogger := logger.WithGroup("server")

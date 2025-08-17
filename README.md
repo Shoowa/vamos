@@ -492,45 +492,50 @@ func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 }
 ```
 
-
 ### Metrics
-The package _metrics_ is responsible for custom metrics.
+Metrics are created by _Prometheus_ in the package _metrics_ in the file
+_/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The package
+captures go runtime metrics, e.g., *go_threads*, *go_goroutines*, etc.[^m2]
 
-First, define the options _Name_ and _Help_. Second, select one of four types:
-_counter_, _gauge_, _histogram_, or _summary_.[^m1] Third, register it inside
-the function _Register()_. This will be invoked in _main()_.
+A convenient function for creating a Counter and registering it is available for
+the downstream consumer of this library. Simply provide a name and description
+for the Counter.
 ```go
 // metrics/metrics.go
 package metrics
 
-import (
-	"github.com/prometheus/client_golang/prometheus"
-)
+import "github.com/prometheus/client_golang/prometheus"
 
-var readAuthorOpts = prometheus.CounterOpts{
-	Name: "read_author_count",
-	Help: "amount readAuthor requests",
-}
+func CreateCounter(name string, help string) prometheus.Counter {
+	opts := prometheus.CounterOpts{
+		Name: name,
+		Help: help,
+	}
 
-var ReadAuthorCounter = prometheus.NewCounter(readAuthorOpts)
-
-func Register() {
-	prometheus.MustRegister(ReadAuthorCounter)
+	counter := prometheus.NewCounter(opts)
+	prometheus.MustRegister(counter)
+	return counter
 }
 ```
 
-Finally, increment the counter with the method _Inc()_ inside a HTTP Handler.
+New metrics need to be created in the executable, so they can be imported by a
+HTTP Handler.
 ```go
-// router/routes_features_v1.go
-package router
+// main.go
+package main
 // abbreviated for clarity...
 
 import "vamos/metrics"
 
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
-	metrics.ReadAuthorCounter.Inc()
-	surname := req.PathValue("surname")
-    // skipping the rest of the body...
+func main() {
+    var ReadAuthorCntr = metrics.CreateCounter("read_author_count", "description")
+
+    // A dependency-wrapper with a method HTTP Handler that returns an error.
+    func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+        metric.ReadAuthorCntr.Inc()
+        surname := req.PathValue("surname")
+        // skipping body...
+    }
 }
 ```
 
@@ -542,7 +547,7 @@ Observe the new data on the _/metrics_ route.
 promhttp_metric_handler_requests_total{code="200"} 0
 promhttp_metric_handler_requests_total{code="500"} 0
 promhttp_metric_handler_requests_total{code="503"} 0
-# HELP read_author_count amount readAuthor requests
+# HELP read_author_count description
 # TYPE read_author_count counter
 read_author_count 0
 ```

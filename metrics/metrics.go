@@ -5,13 +5,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var readAuthorOpts = prometheus.CounterOpts{
-	Name: "read_author_count",
-	Help: "amount readAuthor requests",
-}
+func CreateCounter(name string, help string) prometheus.Counter {
+	opts := prometheus.CounterOpts{
+		Name: name,
+		Help: help,
+	}
 
-var ReadAuthorCounter = prometheus.NewCounter(readAuthorOpts)
-
-func Register() {
-	prometheus.MustRegister(ReadAuthorCounter)
+	counter := prometheus.NewCounter(opts)
+	prometheus.MustRegister(counter)
+	return counter
 }
