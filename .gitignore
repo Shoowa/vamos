@@ -33,3 +33,6 @@ go.work.sum
 
 # Named executable
 vamos
+
+# Generated code by sqlC
+sqlc/data
