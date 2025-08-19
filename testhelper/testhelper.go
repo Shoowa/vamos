@@ -116,7 +116,6 @@ func createRouter(t *testing.T) *router.Bundle {
 
 	backbone := router.NewBackbone(
 		router.WithLogger(logger),
-		router.WithQueryHandleForFirstDB(db1),
 		router.WithDbHandle(db1),
 	)
 

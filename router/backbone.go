@@ -9,9 +9,6 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"vamos/data/rdbms"
-	"vamos/sqlc/data/first"
 )
 
 const (
@@ -22,10 +19,10 @@ type errHandler func(http.ResponseWriter, *http.Request) error
 
 type Option func(*Backbone)
 
-// Backbone holds data dependencies.
+// Backbone holds data dependencies. The field FirstDB can hold a sqlC generated
+// Queries struct, but we can't define that type.
 type Backbone struct {
 	Logger       *slog.Logger
-	FirstDB      *first.Queries
 	Health       *Health
 	DbHandle     *pgxpool.Pool
 	HeapSnapshot *bytes.Buffer
@@ -51,13 +48,6 @@ func NewBackbone(options ...Option) *Backbone {
 func WithLogger(l *slog.Logger) Option {
 	return func(b *Backbone) {
 		b.Logger = l
-	}
-}
-
-func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
-	return func(b *Backbone) {
-		q := rdbms.FirstDB_AdoptQueries(dbHandle)
-		b.FirstDB = q
 	}
 }
 

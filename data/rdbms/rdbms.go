@@ -10,7 +10,6 @@ import (
 
 	"vamos/config"
 	"vamos/secrets"
-	"vamos/sqlc/data/first"
 )
 
 const (
@@ -76,8 +75,4 @@ func ConnectDB(cfg *config.Config, dbPosition int) (*pgxpool.Pool, error) {
 	}
 
 	return dbpool, nil
-}
-
-func FirstDB_AdoptQueries(dbpool *pgxpool.Pool) *first.Queries {
-	return first.New(dbpool)
 }

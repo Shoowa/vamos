@@ -29,7 +29,6 @@ func main() {
 
 	backbone := router.NewBackbone(
 		router.WithLogger(srvLogger),
-		router.WithQueryHandleForFirstDB(db1),
 		router.WithDbHandle(db1),
 	)
 

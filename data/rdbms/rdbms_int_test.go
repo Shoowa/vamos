@@ -51,7 +51,7 @@ func Test_ReadingData(t *testing.T) {
 	t.Setenv("OPENBAO_TOKEN", "token")
 
 	db, _ := ConnectDB(config.Read(), TEST_DB_POS)
-	q := FirstDB_AdoptQueries(db)
+	q := first.New(db)
 
 	timer, _ := context.WithTimeout(context.Background(), TIMEOUT_READ)
 
