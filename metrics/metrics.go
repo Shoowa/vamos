@@ -18,6 +18,18 @@ func requestCounter() *prometheus.CounterVec {
 
 var HttpRequestCounter = requestCounter()
 
+func connectionsGauge() prometheus.Gauge {
+	options := prometheus.GaugeOpts{
+		Name: "http_active_requests",
+		Help: "Amount of active HTTP requests.",
+	}
+	gauge := prometheus.NewGauge(options)
+	prometheus.MustRegister(gauge)
+	return gauge
+}
+
+var HttpRequestsGauge = connectionsGauge()
+
 func CreateCounter(name string, help string) prometheus.Counter {
 	opts := prometheus.CounterOpts{
 		Name: name,

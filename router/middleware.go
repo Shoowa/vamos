@@ -33,6 +33,7 @@ func NewBundle(logger *slog.Logger, router *http.ServeMux) *Bundle {
 }
 
 func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	metrics.HttpRequestsGauge.Inc()
 	b.Logger.Info(
 		"Inbound",
 		"method", req.Method,
@@ -46,6 +47,7 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	b.Router.ServeHTTP(recorder, req)
+	metrics.HttpRequestsGauge.Dec()
 
 	status := strconv.Itoa(recorder.statusCode)
 	metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
