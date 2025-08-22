@@ -3,7 +3,20 @@ package router
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
+
+	"vamos/metrics"
 )
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (recorder *statusRecorder) WriteHeader(code int) {
+	recorder.statusCode = code
+	recorder.ResponseWriter.WriteHeader(code)
+}
 
 // Bundle holds the logger & router, and satisfies the ServeHTTP interface. This
 // enables the creation of a middleware for standardized logging.
@@ -26,7 +39,16 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		"path", req.URL.Path,
 		"uagent", req.Header.Get("User-Agent"),
 	)
-	b.Router.ServeHTTP(w, req)
+
+	recorder := &statusRecorder{
+		ResponseWriter: w,
+		statusCode:     http.StatusOK,
+	}
+
+	b.Router.ServeHTTP(recorder, req)
+
+	status := strconv.Itoa(recorder.statusCode)
+	metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
 }
 
 // Endpoint is a struct that can be used to create a menu of routes.
