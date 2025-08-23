@@ -37,17 +37,17 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 	return s
 }
 
-// GracefulIgnition launches a webserver.
-func GracefulIgnition(s *http.Server) {
+// gracefulIgnition launches a webserver.
+func gracefulIgnition(s *http.Server) {
 	err := s.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
 		panic(err)
 	}
 }
 
-// GracefulShutdown stops accepting new connections and waits for working
+// gracefulShutdown stops accepting new connections and waits for working
 // connections to become idle before terminating them.
-func GracefulShutdown(s *http.Server) error {
+func gracefulShutdown(s *http.Server) error {
 	quitCtx, quit := context.WithTimeout(context.Background(), GRACE_PERIOD)
 	defer quit()
 
@@ -61,18 +61,18 @@ func GracefulShutdown(s *http.Server) error {
 // CatchSigTerm creates a buffered message queue awaiting an OS signal. The Main
 // routine will block while the channel awaits the signal. After receiving a
 // signal, the Main routine will shutdown the server.
-func CatchSigTerm() {
+func catchSigTerm() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 }
 
 func Start(l *slog.Logger, s *http.Server) {
-	go GracefulIgnition(s)
+	go gracefulIgnition(s)
 	l.Info("HTTP Server activated")
-	CatchSigTerm()
+	catchSigTerm()
 	l.Info("Begin decommissioning HTTP server.")
-	shutErr := GracefulShutdown(s)
+	shutErr := gracefulShutdown(s)
 	if shutErr != nil {
 		l.Error("HTTP Server shutdown error", "ERR:", shutErr.Error())
 		killErr := s.Close()
