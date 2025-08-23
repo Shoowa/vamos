@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -64,4 +65,20 @@ func CatchSigTerm() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
+}
+
+func Start(l *slog.Logger, s *http.Server) {
+	go GracefulIgnition(s)
+	l.Info("HTTP Server activated")
+	CatchSigTerm()
+	l.Info("Begin decommissioning HTTP server.")
+	shutErr := GracefulShutdown(s)
+	if shutErr != nil {
+		l.Error("HTTP Server shutdown error", "ERR:", shutErr.Error())
+		killErr := s.Close()
+		if killErr != nil {
+			l.Error("HTTP Server kill error", "ERR:", killErr.Error())
+		}
+	}
+	l.Info("HTTP Server halted")
 }
