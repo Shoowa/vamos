@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"vamos/config"
+	"github.com/Shoowa/vamos/config"
 )
 
 func configure(cfg *config.Config) *slog.HandlerOptions {

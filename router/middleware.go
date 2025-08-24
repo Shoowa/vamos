@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"vamos/metrics"
+	"github.com/Shoowa/vamos/metrics"
 )
 
 type statusRecorder struct {

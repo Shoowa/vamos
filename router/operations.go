@@ -6,7 +6,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"vamos/config"
+	"github.com/Shoowa/vamos/config"
 )
 
 const TIMEOUT_PING = time.Millisecond * 299

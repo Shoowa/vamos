@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"vamos/config"
+	"github.com/Shoowa/vamos/config"
 )
 
 const GRACE_PERIOD = time.Second * 15

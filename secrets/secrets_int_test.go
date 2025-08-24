@@ -5,9 +5,9 @@ package secrets_test
 import (
 	"testing"
 
-	"vamos/config"
-	. "vamos/secrets"
-	. "vamos/testhelper"
+	"github.com/Shoowa/vamos/config"
+	. "github.com/Shoowa/vamos/secrets"
+	. "github.com/Shoowa/vamos/testhelper"
 )
 
 const (

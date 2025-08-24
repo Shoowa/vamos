@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"vamos/config"
-	"vamos/secrets"
+	"github.com/Shoowa/vamos/config"
+	"github.com/Shoowa/vamos/secrets"
 )
 
 const (

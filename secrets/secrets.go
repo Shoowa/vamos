@@ -6,7 +6,7 @@ import (
 
 	openbao "github.com/openbao/openbao/api/v2"
 
-	"vamos/config"
+	"github.com/Shoowa/vamos/config"
 )
 
 func ReadConfig(cfg *config.Config) *openbao.Config {

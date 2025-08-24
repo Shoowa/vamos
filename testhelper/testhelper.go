@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"vamos/config"
-	"vamos/data/rdbms"
-	"vamos/router"
+	"github.com/Shoowa/vamos/config"
+	"github.com/Shoowa/vamos/data/rdbms"
+	"github.com/Shoowa/vamos/router"
 
 	"github.com/jackc/pgx/v5"
 )
