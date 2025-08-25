@@ -27,7 +27,6 @@ import (
 const (
 	TEST_DB_POS = 0
 	TIMEOUT     = time.Second * 1
-	PROJECT     = "vamos"
 	FAKE_DATA   = "_testdata/fake_data_db1.sql"
 )
 
@@ -59,8 +58,9 @@ func Equals(tb testing.TB, exp, act interface{}) {
 }
 
 func Change_to_project_root() {
+	dirName := os.Getenv("PROJECT_NAME")
 	wd, _ := os.Getwd()
-	for !strings.HasSuffix(wd, PROJECT) {
+	for !strings.HasSuffix(wd, dirName) {
 		wd = filepath.Dir(wd)
 	}
 	changeErr := os.Chdir(wd)
