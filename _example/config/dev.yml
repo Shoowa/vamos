@@ -1,4 +1,7 @@
 ---
+test:
+  db_position: 0
+  fake_data: testdata/fake_data_db1.sql
 logger:
   level: debug
 secrets:

@@ -1,4 +1,6 @@
 ---
+test:
+  db_position: 0
 logger:
   level: debug
 secrets:

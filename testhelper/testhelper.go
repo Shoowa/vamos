@@ -25,9 +25,7 @@ import (
 )
 
 const (
-	TEST_DB_POS = 0
-	TIMEOUT     = time.Second * 1
-	FAKE_DATA   = "_testdata/fake_data_db1.sql"
+	TIMEOUT = time.Second * 1
 )
 
 // assert fails the test if the condition is false.
@@ -70,8 +68,8 @@ func Change_to_project_root() {
 }
 
 func CreateTestTable(timer context.Context) error {
-	// Read configuration information to establish connection.
-	dbConfig := rdbms.WhichDB(config.Read(), TEST_DB_POS)
+	cfg := config.Read()
+	dbConfig := rdbms.WhichDB(cfg, cfg.Test.DbPosition)
 	credString, credErr := rdbms.Credentials(dbConfig)
 	if credErr != nil {
 		return credErr
@@ -96,7 +94,7 @@ func CreateTestTable(timer context.Context) error {
 	cmdTimer, cancelCommand := context.WithTimeout(timer, time.Second*3)
 	defer cancelCommand()
 
-	fakeData, fileErr := os.ReadFile(FAKE_DATA)
+	fakeData, fileErr := os.ReadFile(cfg.Test.FakeData)
 	if fileErr != nil {
 		return fileErr
 	}
@@ -108,7 +106,7 @@ func createRouter(t *testing.T) *router.Bundle {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
-	db1, db1Err := rdbms.ConnectDB(cfg, TEST_DB_POS)
+	db1, db1Err := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
 	if db1Err != nil {
 		logger.Error(db1Err.Error())
 		panic(db1Err)

@@ -37,6 +37,7 @@ type Config struct {
 	Data       *Data       `yaml:"data"`
 	HttpServer *HttpServer `yaml:"httpserver"`
 	Health     *Health     `yaml:"health"`
+	Test       *Test       `yaml:"test"`
 }
 
 type Logger struct {
@@ -88,4 +89,9 @@ type Health struct {
 	HeapSize        uint64 `yaml:"heap_size"`
 	RoutTimer       int    `yaml:"rout_timer"`
 	RoutinesPerCore int    `yaml:"routines_per_core"`
+}
+
+type Test struct {
+	DbPosition int    `yaml:"db_position"`
+	FakeData   string `yaml:"fake_data"`
 }
