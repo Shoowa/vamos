@@ -162,3 +162,46 @@ func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string
 	body = bytes.TrimSpace(body)
 	return r.StatusCode, r.Header, string(body)
 }
+
+func createRouterExtDeps(t *testing.T, d router.HttpErrorHandler) *router.Bundle {
+	cfg := config.Read()
+	logger := slog.New(slog.DiscardHandler)
+
+	db1, db1Err := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
+	if db1Err != nil {
+		logger.Error(db1Err.Error())
+		panic(db1Err)
+	}
+
+	backbone := router.NewBackbone(
+		router.WithLogger(logger),
+		router.WithDbHandle(db1),
+	)
+	d.AddBackbone(backbone)
+	rm := d.GetEndpoints()
+
+	router := router.NewRouter(d)
+	router.AddRoutes(rm, backbone)
+
+	return router
+}
+
+func CreateTestServerExtDeps(t *testing.T, d router.HttpErrorHandler) *testServer {
+	jar, jErr := cookiejar.New(nil)
+	if jErr != nil {
+		t.Fatal(jErr)
+	}
+
+	router := createRouterExtDeps(t, d)
+	s := httptest.NewServer(router)
+
+	// Enable saving response cookies for subsequent requests.
+	s.Client().Jar = jar
+
+	// Disable redirect to see the first response.
+	s.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	return &testServer{s}
+}
