@@ -15,6 +15,13 @@ const (
 	StatusClientClosed = 499
 )
 
+type HttpErrorHandler interface {
+	GetLogger() *slog.Logger
+	GetBackbone() *Backbone
+	AddBackbone(*Backbone)
+	GetEndpoints() []Endpoint
+}
+
 type errHandler func(http.ResponseWriter, *http.Request) error
 
 type Option func(*Backbone)
@@ -75,4 +82,18 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 			}
 		}
 	}
+}
+
+func (b *Backbone) GetLogger() *slog.Logger {
+	return b.Logger
+}
+
+func (b *Backbone) GetBackbone() *Backbone {
+	return b
+}
+
+func (b *Backbone) AddBackbone(*Backbone) {}
+
+func (b *Backbone) GetEndpoints() []Endpoint {
+	return nil
 }
