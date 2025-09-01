@@ -21,30 +21,26 @@ type Deps struct {
 	Query *first.Queries // NOT generated in this example.
 }
 
-// EquipRouter conveniently wraps the Backbone in a new struct named Deps.
-func EquipRouter(b *router.Backbone) http.Handler {
-	rtr := router.NewRouter(b)
-	d := &Deps{b, first.New(b.DbHandle)} // NOT generated in this example.
-
-	// Attach HTTP Handler directly to the http.ServeMux
-	rtr.Router.HandleFunc("GET /test1", d.hndlr1)
-
-	// Or attach HTTP errHandlers via a convenient func.
-	rm := routeMenu(d)
-	rtr.AddRoutes(rm, b)
-
-	return rtr
-}
-
-// Create a list of the library's Endpoints. Easy to write, easy to read.
-func routeMenu(d *Deps) []router.Endpoint {
+// Create a menu of routes.
+func (d *Deps) GetEndpoints() []router.Endpoint {
 	return []router.Endpoint{
 		{"GET /test2", d.hndlr2},
 		{"GET /readAuthorName/{surname}", d.readAuthorName},
 	}
 }
 
-func (d *Deps) hndlr1(w http.ResponseWriter, req *http.Request) {
+// Create a native struct that embeds the Backbone struct and adds sqlC Queries.
+func WrapBackbone(b *router.Backbone) *Deps {
+	d := &Deps{b, first.New(b.DbHandle)}
+	return d
+}
+
+// CreateEmptyDeps is useful for creating the backboneWrapper in tests.
+func CreateEmptyDeps() *Deps {
+	return &Deps{nil, nil}
+}
+
+func (d *Deps) Hndlr1(w http.ResponseWriter, req *http.Request) {
 	d.Logger.Info("Test1, test1, test1...")
 	w.Write([]byte("This is a public service announcement."))
 }

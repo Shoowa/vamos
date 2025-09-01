@@ -35,8 +35,15 @@ func main() {
 	// Launch background health checks.
 	backbone.SetupHealthChecks(cfg)
 
-	// Create router with dependencies and handlers.
-	rtr := routes.EquipRouter(backbone)
+	// Wrap the backbone with a native struct that has its own HTTP Handlers.
+	backboneWrapper := routes.WrapBackbone(backbone)
+
+	// Create router with dependencies and errHandlers.
+	rtr := router.NewRouter(backboneWrapper)
+	rtr.AddRoutes(backboneWrapper.GetEndpoints(), backbone)
+
+	// Also add a HTTP Handler directly to router.
+	rtr.Router.HandleFunc("GET /test1", backboneWrapper.Hndlr1)
 
 	// Create a webserver with accessible dependencies.
 	webserver := server.NewServer(cfg, rtr)
