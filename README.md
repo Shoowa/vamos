@@ -150,8 +150,8 @@ database.[^d1]
 Create a _.sql_ file that will hold the commands to create a table named
 _authors_.
 ```bash
-~/vamos $ migrate create -ext sql -dir sqlc/migrations/first -seq create_authors
-~/vamos $ tree sqlc/migrations/first
+~/vamos/_example $ migrate create -ext sql -dir sqlc/migrations/first -seq create_authors
+~/vamos/_example $ tree sqlc/migrations/first
 sqlc/migrations/first
 ├── 000001_create_authors.down.sql
 ├── 000001_create_authors.up.sql
@@ -169,8 +169,8 @@ After writing a SQL command to create a table, apply the command. Notice the
 subdirectory associated with a particular database, in this case _first_.
 Notice the keyword _up_ as the final token in the command.
 ```bash
-~/vamos $ export TEST_DB=postgres://tester@localhost:5432/test_data?sslmode=disable
-~/vamos $ migrate -database $TEST_DB -path sqlc/migrations/first up
+~/vamos/_example $ export TEST_DB=postgres://tester@localhost:5432/test_data?sslmode=disable
+~/vamos/_example $ migrate -database $TEST_DB -path sqlc/migrations/first up
 ```
 The creation of any tables and any adjustments offered by _*.up.sql_ can be
 reversed by following the SQL commands written in _*.down.sql_ files.
@@ -192,26 +192,19 @@ sql:
         out: "data/first"
         sql_package: "pgx/v5"
         emit_json_tags: true
-  - engine: "postgresql"
-    queries: "queries/second"
-    schema: "migrations/second"
-    gen:
-      go:
-        package: "second"
-        out: "data/second"
-        sql_package: "pgx/v5"
-        emit_json_tags: true
 ```
 
-In _sqlc/sqlc.yaml_, two database engines are listed to help the Go application
-connect to two different Postgres databases. Each entry relies on a directory of
-_.sql_ files written for queries, and a directory of _.sql_ files named
-_migrations_ written for creating tables. _sqlC_ reads these files as inputs.
+In _sqlc/sqlc.yaml_, one or more database engines can be listed to help the Go
+application connect to two different Postgres databases. Each entry relies on a
+directory of _.sql_ files written for queries, and a directory of _.sql_ files
+named _migrations_ written for creating tables. _sqlC_ reads these files as
+inputs.
 
 The produced code will reside in the _first_ package in a newly created
-subdirectory named _data/first_ and the _second_ package in subdirectory
-_data/second_. The code will use the _pgx/v5_ driver, and include JSON tags in
-the fields of the generated structs that represent data entities.
+subdirectory named _data/first_ and another package can reside in a separate
+subdirectory, i.e., _data/second_. The code will use the _pgx/v5_ driver, and
+include JSON tags in the fields of the generated structs that represent data
+entities.
 
 After we draft a _.sql_ file for a hypothetical table of _authors_, like so:
 ```sql
@@ -226,7 +219,7 @@ CREATE TABLE IF NOT EXISTS authors (
 We can execute the command to create Go code that will interact with the
 Postgres database.
 ```bash
-~/vamos $ sqlc generate -f sqlc/sqlc.yaml
+~/vamos/_example $ sqlc generate -f sqlc/sqlc.yaml
 ```
 
 The tool _sqlC_ produces the following code in a _models.go_ file:
@@ -281,10 +274,10 @@ func New(db DBTX) *Queries {
 }
 ```
 
-The Postgres connection pool created in _main()_ is transferred to _Queries_
+The Postgres connection pool created in _main()_ is transferred to _Backbone_
 when configuring the *Backbone* with the _Options pattern_.[^o1]
 ```go
-// main.go
+// _example/main.go
 package main
 // abbreviated for clarity...
 
@@ -293,10 +286,8 @@ func main() {
 
 	backbone := router.NewBackbone(
 		router.WithLogger(srvLogger),
-		router.WithQueryHandleForFirstDB(db1),
+		router.WithDbHandle(db1),
 	)
-
-	router := router.NewRouter(backbone)
 }
 ```
 
@@ -307,22 +298,29 @@ resides in the _Router_ package.
 package router
 // abbreviated for clarity...
 
-func WithQueryHandleForFirstDB(dbHandle *pgxpool.Pool) Option {
+func WithDbHandle(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
-		q := rdbms.FirstDB_AdoptQueries(dbHandle)
-		b.FirstDB = q
+		b.DbHandle = dbHandle
 	}
 }
 ```
 
-This particular function transfers the connection pool to _Queries_.
+In a downstream executable that imports this library and leverages _sqlC_, the
+database handle will need to be transferred to the _*Queries_ struct and held
+inside a wrapper.
 ```go
-// data/rdbms/rdbms.go
-package rdbms
+// _example/routes/routes.go
+package routes
 // abbreviated for clarity...
 
-func FirstDB_AdoptQueries(dbpool *pgxpool.Pool) *first.Queries {
-	return first.New(dbpool)
+type Deps struct {
+	*router.Backbone
+	Query *first.Queries
+}
+
+func WrapBackbone(b *router.Backbone) *Deps {
+	d := &Deps{b, first.New(b.DbHandle)}
+	return d
 }
 ```
 
@@ -336,10 +334,11 @@ Create a feature with an existing SQL Table by following this process:
 3. Draft a new HTTP Handler.
 4. Register the new HTTP Handler with the Router.
 5. Add a log line.
-6. Add a metric line & register it.
+6. Add a metric line
+
 
 ### Draft A SQL Query
-In the directory _sqlc/queries/first_, add a file named _authors.sql_, then
+In the directory *_example/sqlc/queries/first*, add a file named _authors.sql_, then
 write this inside it.
 ```sql
 -- name: GetAuthor :one
@@ -347,7 +346,7 @@ SELECT * FROM authors WHERE name = $1 LIMIT 1;
 ```
 Then use _sqlC_ to transform that SQL query into Go code.
 ```bash
-~/vamos $ sqlc generate -f sqlc/sqlc.yaml
+~/vamos/_example $ sqlc generate -f sqlc/sqlc.yaml
 ```
 
 _sqlC_ will read the comment, then create a _const_ with that name, and assign a
@@ -376,34 +375,41 @@ func (q *Queries) GetAuthor(ctx context.Context, name string) (Author, error) {
 The method _GetAuthor()_ can be invoked inside an HTTP handler.
 
 ### HTTP Handlers, Databases, & Errors
-Developers can focus on the file *router/routes_features_v1.go* to
-create RESTful features.
+Developers can focus on the package _router_ to create RESTful features.
 
 Dependency injection is the technique used to provide database handles to the
 HTTP handlers on the web server. Handlers are simply methods of the struct
-_Backbone_. Access a Postgres database through a _Queries_ struct residing in
-the _Backbone_ field named _FirstDB_.
+_Backbone_, or methods of the struct wrapping _Backbone_ in a downstream
+executable. Access a Postgres database in the field _DbHandle_ or through a
+_Queries_ struct residing in the wrapper built in a downstream executable.
 
 A custom func type named _errHandler_ has been created to make responding to
 HTTP requests feel like idiomatic Go with a returned _error_. The usual work
 performed by a HTTP Handler, such as reading data from a database, will be done
 inside an _errHandler_.
 ```go
-// router/routes_features_v1.go
+// router/backbone.go
 package router
 // abbreviated for clarity...
 
 // Similar to the http.HandlerFunc, but returns an error.
 type errHandler func(http.ResponseWriter, *http.Request) error
+```
 
-// readAuthor conforms to the signature of errHandler and feels idiomatic.
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
+And a hypothetical HTTP errHandler can be drafted in a downstream executable to
+resemble this:
+```go
+// _example/routes/routes.go
+package routes
+// abbreviated for clarity...
+
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
 	defer cancel()
 
-	result, err := b.FirstDB.GetAuthor(timer, surname)
+	result, err := d.Query.GetAuthor(timer, surname)
 
     // No need to hande the error inside the body of this modified handler.
     // Simply return it.
@@ -418,29 +424,44 @@ func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
 
 
 ### Add New errHandler to Router
-The returned _error_ needs to be managed & recorded by the function _eHand_. The
-_errHandler_ needs to be wrapped by _eHand_ to conform to the _http.HandlerFunc_
-interface and be accepted by the router.
-
-Inside the package _router_ in _router/routes_features_v1.go_, add the
-wrapped errHandler to the router in the private function _addFeaturesV1_.
+In a downstream executable, add a method named _GetEndpoints()_ to the custom
+dependency struct that wraps the _Backbone_ to conform to the library interface
+_HttpErrorHandler_. This is required for the router to adopt routes written in
+the executable.
 
 Select the HTTP method that is most appropriate for the writing and reading of
 data. The ability to select _GET_ or _POST_ as an argument in parameter
 _pattern_ is a new feature of the language in version 1.22.[^r1]
 ```go
-// router/routes_features_v1.go
+// _example/routes/routes.go
+package routes
+// abbreviated for clarity...
+
+type Deps struct {
+	*router.Backbone
+	Query *first.Queries // NOT generated in this example.
+}
+
+func (d *Deps) GetEndpoints() []router.Endpoint {
+	return []router.Endpoint{
+		{"GET /test2", d.hndlr2},
+		{"GET /readAuthorName/{surname}", d.readAuthorName},
+	}
+}
+```
+
+The returned _error_ of _readAuthorName()_ will be managed & recorded by the
+function _eHand_. The _errHandler_ needs to be wrapped by _eHand_ to conform to
+the _http.HandlerFunc_ interface and be accepted by the router.
+
+```go
+// routes/backbone.go
 package router
 // abbreviated for clarity...
 
-func addFeaturesV1(router *http.ServeMux, b *Backbone) {
-	rAuthorHandler := b.eHand(b.readAuthor)
-	router.Handle("GET /author/{surname}", rAuthorHandler)
-}
-
 func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-        // f is the method b.readAuthor
+        // f is the method b.readAuthorName
 		err := f(w, req)
 
         // Error management begins here.
@@ -466,29 +487,90 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 }
 ```
 
-
-### Logs
-Inside a HTTP handler, record errors and extra data by simply invoking
-_b.Logger.Error(topic, key, value)_.
+The _Bundle_ method _AddRoutes(routeMenu []Endpoint, deps *Backbone)_
+conveniently adds HTTP paths and handlers to the _http.ServeMux_, and wraps the
+custom _errHandler_ methods with the aforementioned _eHand_ method.
 ```go
-//router/routes_features_v1.go
+// routes/middleware.go
 package router
 // abbreviated for clarity...
 
-func (b *Backbone) readAuthor(w http.ResponseWriter, req *http.Request) error {
+// Endpoint is a struct that can be used to create a menu of routes.
+type Endpoint struct {
+	VerbAndPath string
+	Handler     errHandler
+}
+
+func (b *Bundle) AddRoutes(routeMenu []Endpoint, deps *Backbone) {
+	for _, endpoint := range routeMenu {
+		b.Router.HandleFunc(endpoint.VerbAndPath, deps.eHand(endpoint.Handler))
+	}
+}
+```
+
+
+### Developer Logs
+Inside a HTTP handler or errHandler, record errors and extra data by simply
+invoking the _Logger_ residing in the _Backbone_ struct, or allow the method
+_eHand_ to record errors.
+
+This is how a hypothetical HTTP errHandler drafted in the library looks. Notice
+it can directly access a _Backbone_ field.
+```go
+package router
+// abbreviated for clarity...
+
+func (b *Backbone) doSomething(w http.ResponseWriter, req *http.Request) error {
+	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
+	defer cancel()
+
+	result, err := b.DbHandle.Ping(timer)
+
+	if err != nil {
+        return err
+	}
+
+    b.Logger.Info("Did something important... but we should silently succeed.")
+	w.Write([]byte("ok"))
+    return nil
+}
+```
+
+This is a hypothetical HTTP errHandler drafted in a downstream executable that
+imports the library. It is a method on a struct named _Deps_ that wraps around
+the _Backbone_. And _Deps_ holds a sqlC generated _Queries_ struct in a custom
+field conveniently named _Query_.
+```go
+//routes/features_v1.go
+package routes
+// abbreviated for clarity...
+import (
+	"_example/sqlc/data/first" // sqlC generated code
+	"github.com/Shoowa/vamos/router"
+)
+
+type Deps struct {
+	*router.Backbone
+	Query *first.Queries
+}
+
+d := &Deps{backbone, first.New(backbone.DbHandle)} // add sqlC *Queries struct
+
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
 	defer cancel()
 
-	result, err := b.FirstDB.GetAuthor(timer, surname)
+	result, err := d.Query.GetAuthor(timer, surname)
 
 	if err != nil {
-        b.Logger.Error("readAuthor", "msg", err.Error())
+        d.Logger.Error("readAuthorName", "msg", err.Error())
         return err
 	}
 
 	w.Write([]byte(result.Name))
+    return nil
 }
 ```
 
@@ -497,7 +579,7 @@ Metrics are created by _Prometheus_ in the package _metrics_ in the file
 _/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The package
 captures go runtime metrics, e.g., *go_threads*, *go_goroutines*, etc.[^m2]
 
-A convenient function for creating a Counter and registering it is available for
+A convenient function for creating a Counter and registering it is available to
 the downstream consumer of this library. Simply provide a name and description
 for the Counter.
 ```go
@@ -519,23 +601,28 @@ func CreateCounter(name string, help string) prometheus.Counter {
 ```
 
 New metrics need to be created in the executable, so they can be imported by a
-HTTP Handler.
+HTTP Handler. This example shows an executable package named _metric_ that
+imports the library's _metrics_ package. No creative naming here.
 ```go
-// main.go
-package main
+package metric
+
+import "github.com/Shoowa/vamos/metrics"
+
+var ReadAuthCount = metrics.CreateCounter("read_authorSurname_count", "no_help")
+```
+
+Then the local _Counter_ is imported into the executable _routes_ package.
+```go
+// _example/routes/routes.go
+package routes
 // abbreviated for clarity...
 
-import "vamos/metrics"
+import "metric/metric"
 
-func main() {
-    var ReadAuthorCntr = metrics.CreateCounter("read_author_count", "description")
-
-    // A dependency-wrapper with a method HTTP Handler that returns an error.
-    func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
-        metric.ReadAuthorCntr.Inc()
-        surname := req.PathValue("surname")
-        // skipping body...
-    }
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+    metric.ReadAuthCount.Inc()
+    surname := req.PathValue("surname")
+    // skipping body...
 }
 ```
 
@@ -547,9 +634,9 @@ Observe the new data on the _/metrics_ route.
 promhttp_metric_handler_requests_total{code="200"} 0
 promhttp_metric_handler_requests_total{code="500"} 0
 promhttp_metric_handler_requests_total{code="503"} 0
-# HELP read_author_count description
-# TYPE read_author_count counter
-read_author_count 0
+# HELP read_authorSurname_count no_help
+# TYPE read_authorSurname_count counter
+read_authorSurname_count 0
 ```
 
 
@@ -655,7 +742,7 @@ input to the build step. An informative record of Git Commits can aid any
 operator during an incident.
 
 ```bash
-~/vamos $ go build -v -ldflags="-s -X 'vamos/config.AppVersion=v.0.0.0' " -o vamos
+~/vamos $ go build -v -ldflags="-s -X 'vamos/config.AppVersion=v.0.0.0' "
 ```
 The linker flag _-s_ removes symbol table info and DWARF info to produce a
 smaller executable. And _-X_[^b1] sets the value of a _string_ variable named
@@ -682,7 +769,7 @@ truth. One less dependency in the application. Below is an example of a testing
 function residing in _testhelper.go_.
 ```go
 // testhelper/testhelper.go
-func Equals(tb testing.TB, exp, act interface{}) {
+func Equals(tb testing.TB, exp, act any) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
@@ -736,23 +823,36 @@ Use a _make_ command to easily perform the aforementioned tasks.
 ~/vamos $ make test_database
 ```
 
+In a downstream executable, integration tests can be invoked like this:
+```bash
+~/vamos/_example $ PROJECT_NAME=_example go test ./... -count=1 -tags=integration
+```
+
 #### Test Suite Setup & Teardown
 The application will amend the test suite by first repositioning the root of a
 test executable in order to read files that provide sample data and the
 configuration file. Then the test suite will write data to the database, then
 run the test functions. Lastly, the report is offered.
 ```go
-// data/rdbms/rdbms_int_test.go
-package rdbms_test
-// abbreviated for clarity...
+// _example/tests/data_test.go
+package data_test
+
+import (
+    // abbreviated for clarity...
+    "testing"
+	"github.com/Shoowa/vamos/testhelper"
+)
 
 func TestMain(m *testing.M) {
+    // Direct app to read dev.yml
 	os.Setenv("APP_ENV", "DEV")
-	Change_to_project_root()
-	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 
+    // Reposition root of test executable.
+	testhelper.Change_to_project_root()
+
+	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
 	// Setup common resource for all integration tests in only this package.
-	dbErr := CreateTestTable(timer)
+	dbErr := testhelper.CreateTestTable(timer)
 	if dbErr != nil {
 		panic(dbErr)
 	}
@@ -770,23 +870,25 @@ adjusted to induce reading configuration data for the _development_ environment.
 func Test_ConnectDB(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
-	db, dbErr := ConnectDB(config.Read(), TEST_DB_POS)
+	cfg := config.Read()
+	db, dbErr := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
 	Ok(t, dbErr)
 	t.Cleanup(func() { db.Close() })
 }
 ```
 
-To hasten the test suite, a different set of functions that perform _read_
-operations are executed concurrently. And they rely on a common connection pool
-created in the same test group. The final action of the test group is to close
-the connection pool.
+In the *_example* executable, concurrent reading operations are tested in
+_tests/data_test.go_. And they rely on a common connection pool created in the
+same test group. The final action of the test group is to close the connection
+pool.
 ```go
 func Test_ReadingData(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
 
-	db, _ := ConnectDB(config.Read(), TEST_DB_POS)
-	q := FirstDB_AdoptQueries(db)
+	cfg := config.Read()
+	db, _ := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
+	q := first.New(db) // return sqlC generated *Queries
 
 	timer, _ := context.WithTimeout(context.Background(), TIMEOUT_READ)
 
@@ -843,19 +945,44 @@ preserves the data of the customer, enhances the user experience, and avoids
 alarms that can mistakenly summon staff.
 
 The webserver is launched in a separate _go routine_, then a _channel_ is opened
-in _main()_ to receive termination signals. This blocks _main()_ until either
-signal 2 or 15 is received.
+to receive termination signals. This blocks the main func until either signal 2
+or signal 15 is received. Then the server is gracefully stopped. When that
+fails, then the errors are logged and the server is forcefully stopped.
 ```go
-// main.go
+// server/server.go
+package server
+// abbreviated for clarity...
+
+func Start(l *slog.Logger, s *http.Server) {
+	go gracefulIgnition(s)
+	l.Info("HTTP Server activated")
+
+	catchSigTerm()
+
+	l.Info("Begin decommissioning HTTP server.")
+	shutErr := gracefulShutdown(s)
+
+	if shutErr != nil {
+		l.Error("HTTP Server shutdown error", "ERR:", shutErr.Error())
+		killErr := s.Close()
+		if killErr != nil {
+			l.Error("HTTP Server kill error", "ERR:", killErr.Error())
+		}
+	}
+
+	l.Info("HTTP Server halted")
+}
+```
+
+This is convenient to invoke as one line in an executable.
+```go
+// _example/main.go
 package main
 // abbreviated for clarity...
 
 func main() {
-	webserver := server.NewServer(cfg, router)
-    go server.GracefulIgnition(webserver)
-
-	server.CatchSigTerm()
-	server.GracefulShutdown(webserver)
+    // skipping the setup...
+    server.Start(logger, webserver)
 }
 ```
 
@@ -864,11 +991,11 @@ while awaiting active connections. This is essential in a dynamic environment
 like a _Kubernetes_ cluster. A kubelet transmits Signal 15 to a container and
 pods wait 30 seconds for application cleanup.[^k1]
 ```go
-// main.go
-package main
+// server/server.go
+package server
 // abbreviated for clarity...
 
-func CatchSigTerm() {
+func catchSigTerm() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
@@ -920,9 +1047,8 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 Inserting the webserver in a _go routine_ is required to avoid a hasty shutdown.
 When _http.Server.Shutdown()_ is invoked, _http.Server.ListenAndServe()_ returns
 immediately.[^s1] _ListenAndServe()_ was blocking in a _go routine_, and becomes
-un-blocked. If _ListenAndServe()_ had been implemented
-in _main()_, then it would immediately un-block and _main()_ would immediately
-return.
+un-blocked. If _ListenAndServe()_ had been implemented in _main()_, then it
+would immediately un-block and _main()_ would immediately return.
 
 
 ## Operate
@@ -932,35 +1058,53 @@ configuration file and access storage of sensitive credentials.
 ~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
 ```
 
+
+### Router Creation Requires An Interface
+The _NewRouter_ function accepts a custom interface named _HttpErrorHandler_, so
+that it can actually accept two different types of structs. The first struct,
+_Backbone_,  will be directly used often in the library. The second will be used
+in a downstream executable as a wrapper around the _Backbone_. Both can conform
+to the _HttpErrorHandler_ interface by adopting certain methods enumerated in
+_router/backbone.go_.
+
+Though an interface isn't required to use a wrapper in a downstream executable,
+it does ease testing. So I haphazardly drafted one.
+
+
 ### Metrics
 Metrics are created by _Prometheus_ in the package _metrics_ in the file
 _/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The
 package captures go runtime metrics, e.g., *go_threads*, *go_goroutines*,
 etc.[^m2]
 
-New metrics needs to be registered, so they can be activated in _main()_.
+New metrics needs to be registered to be activated.
+
+The routing middleware in _router/middleware.go_ counts the number of HTTP
+responses by HTTP Verb & Path. And counts the number of active connections.
 ```go
-// metrics/metrics.go
-package metrics
+// router/middleware.go
+package router
 // abbreviated for clarity...
 
-import "github.com/prometheus/client_golang/prometheus"
+func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+    // Recognize an increase in the number of active connections.
+	metrics.HttpRequestsGauge.Inc()
 
-func Register() {
-	prometheus.MustRegister(ReadAuthorCounter)
-}
-```
+    // Create a custom struct that implements the ResponseWriter interface.
+	recorder := &statusRecorder{
+		ResponseWriter: w,
+		statusCode:     http.StatusOK,
+	}
 
-The _main()_ function will invoke the public _Register()_ function.
-```go
-// main.go
-package main
-// abbreviated for clarity...
+    // Insert custom struct into the router's dispatcher.
+	b.Router.ServeHTTP(recorder, req)
 
-import "vamos/metrics"
+    // Recognize a decrease in the number of active connections after response.
+	metrics.HttpRequestsGauge.Dec()
 
-func main() {
-	metrics.Register()
+    // Record the response results.
+	status := strconv.Itoa(recorder.statusCode)
+	metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
 }
 ```
 
@@ -1021,25 +1165,9 @@ This can be observed during startup.
 
 
 ### Logging Middleware
-The _Backbone_ struct holds several databases and dependencies that can be used
-inside HTTP handlers. The logger is actually transferred from _Backbone_ to
-_Bundle_. The _Bundle_ also acquires the STDLIB router _http.ServeMux_. It holds
-both the logger and the router.
-```go
-// router/router.go
-package router
-// abbreviated for clarity...
-
-func NewRouter(b *Backbone) *Bundle {
-	mux := http.NewServeMux()
-	routerWithLoggingMiddleware := NewBundle(b.Logger, mux)
-	return routerWithLoggingMiddleware
-}
-```
-
-The middleware is configured in _router/middleware.go_ as a method on
-_Bundle_ that adopts the _http.Handler interface_ from the router by
-implementing _ServeHTTP(http.ReponseWriter, *http.Request)_.
+The middleware is configured in _router/middleware.go_ as a method on _Bundle_
+that adopts the _http.Handler interface_ from the router by implementing
+_ServeHTTP(http.ReponseWriter, *http.Request)_.
 ```go
 // router/middleware.go
 package router
@@ -1075,6 +1203,25 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 }
 ```
 
+The _Backbone_ struct conforms to the custom interface _HttpErrorHandler_, so it
+can be accepted by the function _NewRouter_. _Backbone_ holds the logger that
+can be used by the HTTP Handlers & _errHandlers_.
+
+The logger is actually transferred from _Backbone_ to _Bundle_. The _Bundle_
+also acquires the STDLIB router _http.ServeMux_. It holds both the logger and
+the router, so it can record incoming requests.
+```go
+// router/router.go
+package router
+// abbreviated for clarity...
+
+func NewRouter(heh HttpErrorHandler) *Bundle {
+	mux := http.NewServeMux()
+	routerWithLoggingMiddleware := NewBundle(heh.GetLogger(), mux)
+	return routerWithLoggingMiddleware
+}
+```
+
 Then every incoming request is logged in a standard manner.
 ```bash
 ~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
@@ -1097,7 +1244,6 @@ package router
 
 type Backbone struct {
 	Logger       *slog.Logger
-	FirstDB      *first.Queries
 	Health       *Health
 	DbHandle     *pgxpool.Pool
 	HeapSnapshot *bytes.Buffer
