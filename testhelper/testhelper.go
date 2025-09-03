@@ -157,7 +157,7 @@ func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string
 	return r.StatusCode, r.Header, string(body)
 }
 
-func createRouterExtDeps(t *testing.T, d router.Gatherer) *router.Bundle {
+func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
@@ -171,23 +171,19 @@ func createRouterExtDeps(t *testing.T, d router.Gatherer) *router.Bundle {
 		router.WithLogger(logger),
 		router.WithDbHandle(db1),
 	)
+
+	// Incorporate downstream HTTP Handlers into this upstream test server.
 	d.AddBackbone(backbone)
 	rm := d.GetEndpoints()
-
 	router := router.NewRouter(d)
 	router.AddRoutes(rm, backbone)
 
-	return router
-}
+	s := httptest.NewServer(router)
 
-func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 	jar, jErr := cookiejar.New(nil)
 	if jErr != nil {
 		t.Fatal(jErr)
 	}
-
-	router := createRouterExtDeps(t, d)
-	s := httptest.NewServer(router)
 
 	// Enable saving response cookies for subsequent requests.
 	s.Client().Jar = jar
