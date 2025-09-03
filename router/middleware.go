@@ -49,8 +49,12 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	b.Router.ServeHTTP(recorder, req)
 	metrics.HttpRequestsGauge.Dec()
 
-	status := strconv.Itoa(recorder.statusCode)
-	metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
+	if recorder.statusCode == 404 {
+		metrics.HttpRequestCounter.WithLabelValues("404", "invalid path", req.Method).Inc()
+	} else {
+		status := strconv.Itoa(recorder.statusCode)
+		metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
+	}
 }
 
 // Endpoint is a struct that can be used to create a menu of routes.
