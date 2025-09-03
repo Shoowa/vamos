@@ -742,7 +742,8 @@ input to the build step. An informative record of Git Commits can aid any
 operator during an incident.
 
 ```bash
-~/vamos $ go build -v -ldflags="-s -X 'vamos/config.AppVersion=v.0.0.0' "
+~/vamos/_example $ go env -w GOEXPERIMENT=greenteagc
+~/vamos/_example $ go build -v -ldflags="-s -X '/github.com/Shoowa/vamos/config.AppVersion=v.0.0.0' "
 ```
 The linker flag _-s_ removes symbol table info and DWARF info to produce a
 smaller executable. And _-X_[^b1] sets the value of a _string_ variable named
