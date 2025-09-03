@@ -102,7 +102,11 @@ func CreateTestTable(timer context.Context) error {
 	return nil
 }
 
-func createRouter(t *testing.T) *router.Bundle {
+type testServer struct {
+	*httptest.Server
+}
+
+func CreateTestServer(t *testing.T) *testServer {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
@@ -118,22 +122,12 @@ func createRouter(t *testing.T) *router.Bundle {
 	)
 
 	router := router.NewRouter(backbone)
+	s := httptest.NewServer(router)
 
-	return router
-}
-
-type testServer struct {
-	*httptest.Server
-}
-
-func CreateTestServer(t *testing.T) *testServer {
 	jar, jErr := cookiejar.New(nil)
 	if jErr != nil {
 		t.Fatal(jErr)
 	}
-
-	router := createRouter(t)
-	s := httptest.NewServer(router)
 
 	// Enable saving response cookies for subsequent requests.
 	s.Client().Jar = jar
