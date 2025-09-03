@@ -426,7 +426,7 @@ func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 ### Add New errHandler to Router
 In a downstream executable, add a method named _GetEndpoints()_ to the custom
 dependency struct that wraps the _Backbone_ to conform to the library interface
-_HttpErrorHandler_. This is required for the router to adopt routes written in
+_Gatherer_. This is required for the router to adopt routes written in
 the executable.
 
 Select the HTTP method that is most appropriate for the writing and reading of
@@ -1060,11 +1060,11 @@ configuration file and access storage of sensitive credentials.
 
 
 ### Router Creation Requires An Interface
-The _NewRouter_ function accepts a custom interface named _HttpErrorHandler_, so
+The _NewRouter_ function accepts a custom interface named _Gatherer_, so
 that it can actually accept two different types of structs. The first struct,
 _Backbone_,  will be directly used often in the library. The second will be used
 in a downstream executable as a wrapper around the _Backbone_. Both can conform
-to the _HttpErrorHandler_ interface by adopting certain methods enumerated in
+to the _Gatherer_ interface by adopting certain methods enumerated in
 _router/backbone.go_.
 
 Though an interface isn't required to use a wrapper in a downstream executable,
@@ -1203,7 +1203,7 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 }
 ```
 
-The _Backbone_ struct conforms to the custom interface _HttpErrorHandler_, so it
+The _Backbone_ struct conforms to the custom interface _Gatherer_, so it
 can be accepted by the function _NewRouter_. _Backbone_ holds the logger that
 can be used by the HTTP Handlers & _errHandlers_.
 
@@ -1215,7 +1215,7 @@ the router, so it can record incoming requests.
 package router
 // abbreviated for clarity...
 
-func NewRouter(heh HttpErrorHandler) *Bundle {
+func NewRouter(heh Gatherer) *Bundle {
 	mux := http.NewServeMux()
 	routerWithLoggingMiddleware := NewBundle(heh.GetLogger(), mux)
 	return routerWithLoggingMiddleware

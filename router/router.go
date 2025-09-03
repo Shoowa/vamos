@@ -7,7 +7,7 @@ import (
 
 // NewRouter accepts the Backbone struct containing all the dependencies needed
 // by the Middleware and the Routes.
-func NewRouter(b HttpErrorHandler) *Bundle {
+func NewRouter(b Gatherer) *Bundle {
 	mux := http.NewServeMux()
 
 	// An Operations team can amend routes in routes_operations.go

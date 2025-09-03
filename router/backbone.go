@@ -15,7 +15,7 @@ const (
 	StatusClientClosed = 499
 )
 
-type HttpErrorHandler interface {
+type Gatherer interface {
 	GetLogger() *slog.Logger
 	GetBackbone() *Backbone
 	AddBackbone(*Backbone)

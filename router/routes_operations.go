@@ -7,7 +7,7 @@ import (
 )
 
 // addOperationalRoutes adds health checks and metrics to the router.
-func addOperationalRoutes(router *http.ServeMux, heh HttpErrorHandler) {
+func addOperationalRoutes(router *http.ServeMux, heh Gatherer) {
 	b := heh.GetBackbone()
 	healthCheck := http.HandlerFunc(b.Healthcheck)
 	router.HandleFunc("GET /health", healthCheck)

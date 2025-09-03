@@ -163,7 +163,7 @@ func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string
 	return r.StatusCode, r.Header, string(body)
 }
 
-func createRouterExtDeps(t *testing.T, d router.HttpErrorHandler) *router.Bundle {
+func createRouterExtDeps(t *testing.T, d router.Gatherer) *router.Bundle {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
 
@@ -186,7 +186,7 @@ func createRouterExtDeps(t *testing.T, d router.HttpErrorHandler) *router.Bundle
 	return router
 }
 
-func CreateTestServerExtDeps(t *testing.T, d router.HttpErrorHandler) *testServer {
+func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 	jar, jErr := cookiejar.New(nil)
 	if jErr != nil {
 		t.Fatal(jErr)
