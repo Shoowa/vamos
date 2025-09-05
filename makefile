@@ -14,7 +14,7 @@ DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw
 podman_create_vm:
 	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{couchdb1,postgres,setup} #Create VM volume on MacOS Host.
 	-cp ${SYSD_FILES_ON_HOST} ~/podman_vm/setup #Add SystemD scripts to VM.
-	-cp _testdata/setup_db1.sql ~/podman_vm/setup #Add sql script to Postgres container volume
+	-cp _example/testdata/setup_db1.sql ~/podman_vm/setup #Add sql script to Postgres container volume
 	podman machine init --cpus=4 -m=2048 --disk-size 8 dev_vamos -v ~/podman_vm:/data # Define hardware of VM
 	podman system connection default dev_vamos # set connection for dev_vamos VM as the default connection
 	podman machine start dev_vamos # Start the VM
@@ -32,7 +32,7 @@ podman_delete_vm:
 
 podman_copy_from_host_to_vm:
 	-cp ${SYSD_FILES_ON_HOST} ~/podman_vm/setup
-	-cp _testdata/setup_db1.sql ~/podman_vm/setup
+	-cp _example/testdata/setup_db1.sql ~/podman_vm/setup
 	podman machine ssh dev_vamos \
 		"cp ${VOLUME_VM_CONTAINER_FILES} ${SYSD_DIR_ON_VM}; \
 		cp /data/setup/*.{service,target} .config/systemd/user; \
