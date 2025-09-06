@@ -1,8 +1,8 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 )
 
@@ -10,18 +10,18 @@ var AppVersion string
 
 // Read from either the dev or prod file.
 func Read() *Config {
-	eFile := "config/prod.yml"
+	eFile := "config/prod.json"
 	if os.Getenv("APP_ENV") == "DEV" {
-		eFile = "config/dev.yml"
+		eFile = "config/dev.json"
 	}
 
-	ymlFile, errFile := os.ReadFile(eFile)
+	jsonFile, errFile := os.ReadFile(eFile)
 	if errFile != nil {
 		panic("No config file!")
 	}
 
 	var config Config
-	err := yaml.Unmarshal(ymlFile, &config)
+	err := json.Unmarshal(jsonFile, &config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -31,28 +31,28 @@ func Read() *Config {
 }
 
 type Config struct {
-	Logger     *Logger     `yaml:"logger"`
-	Version    string      `yaml:"version"`
-	Secrets    *Secrets    `yaml:"secrets"`
-	Data       *Data       `yaml:"data"`
-	HttpServer *HttpServer `yaml:"httpserver"`
-	Health     *Health     `yaml:"health"`
-	Test       *Test       `yaml:"test"`
+	Logger     *Logger     `json:"logger"`
+	Version    string      `json:"version"`
+	Secrets    *Secrets    `json:"secrets"`
+	Data       *Data       `json:"data"`
+	HttpServer *HttpServer `json:"httpserver"`
+	Health     *Health     `json:"health"`
+	Test       *Test       `json:"test"`
 }
 
 type Logger struct {
-	Level string `yaml:"level"`
+	Level string `json:"level"`
 }
 
 type Secrets struct {
-	Openbao Openbao `yaml:"openbao"`
+	Openbao Openbao `json:"openbao"`
 }
 
 type Openbao struct {
-	Token  string `yaml:"token"`
-	Scheme string `yaml:"scheme"`
-	Host   string `yaml:"host"`
-	Port   int    `yaml:"port"`
+	Token  string `json:"token"`
+	Scheme string `json:"scheme"`
+	Host   string `json:"host"`
+	Port   string `json:"port"`
 }
 
 func (o *Openbao) ReadConfig() string {
@@ -64,34 +64,34 @@ func (o *Openbao) ReadConfig() string {
 }
 
 type Data struct {
-	Relational []Rdb `yaml:"relational"`
+	Relational []Rdb `json:"relational"`
 }
 
 type Rdb struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	User     string `yaml:"user"`
-	Database string `yaml:"database"`
-	Sslmode  string `yaml:"sslmode"`
-	Secret   string `yaml:"secret"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	User     string `json:"user"`
+	Database string `json:"database"`
+	Sslmode  string `json:"sslmode"`
+	Secret   string `json:"secret"`
 }
 
 type HttpServer struct {
-	Port         string `yaml:"port"`
-	TimeoutRead  int    `yaml:"timeout_read"`
-	TimeoutWrite int    `yaml:"timeout_write"`
-	TimeoutIdle  int    `yaml:"timeout_idle"`
+	Port         string `json:"port"`
+	TimeoutRead  int    `json:"timeout_read"`
+	TimeoutWrite int    `json:"timeout_write"`
+	TimeoutIdle  int    `json:"timeout_idle"`
 }
 
 type Health struct {
-	PingDbTimer     int    `yaml:"ping_db_timer"`
-	HeapTimer       int    `yaml:"heap_timer"`
-	HeapSize        uint64 `yaml:"heap_size"`
-	RoutTimer       int    `yaml:"rout_timer"`
-	RoutinesPerCore int    `yaml:"routines_per_core"`
+	PingDbTimer     int    `json:"ping_db_timer"`
+	HeapTimer       int    `json:"heap_timer"`
+	HeapSize        uint64 `json:"heap_size"`
+	RoutTimer       int    `json:"rout_timer"`
+	RoutinesPerCore int    `json:"routines_per_core"`
 }
 
 type Test struct {
-	DbPosition int    `yaml:"db_position"`
-	FakeData   string `yaml:"fake_data"`
+	DbPosition int    `json:"db_position"`
+	FakeData   string `json:"fake_data"`
 }

@@ -1,0 +1,40 @@
+{
+    "test": {
+        "db_position": 0
+    },
+    "logger": {
+        "level": "debug"
+    },
+    "secrets": {
+        "openbao": {
+            "scheme": "http",
+            "host": "localhost",
+            "port": "8200"
+        }
+    },
+    "data": {
+        "relational": [
+            {
+                "host": "localhost",
+                "port": "5432",
+                "user": "tester",
+                "database": "test_data",
+                "sslmode": "disable",
+                "secret": "dev-postgres-test"
+            }
+        ]
+    },
+    "httpserver": {
+        "port": "8080",
+        "timeout_read": 5,
+        "timeout_write": 10,
+        "timeout_idle": 5
+    },
+    "health": {
+        "ping_db_timer": 60,
+        "heap_timer": 30,
+        "heap_size": 500,
+        "rout_timer": 30,
+        "routines_per_core": 300
+    }
+}
