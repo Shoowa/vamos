@@ -174,9 +174,8 @@ func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 
 	// Incorporate downstream HTTP Handlers into this upstream test server.
 	d.AddBackbone(backbone)
-	rm := d.GetEndpoints()
 	router := router.NewRouter(d)
-	router.AddRoutes(rm, backbone)
+	router.AddRoutes(d)
 
 	s := httptest.NewServer(router)
 

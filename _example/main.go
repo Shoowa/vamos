@@ -40,7 +40,7 @@ func main() {
 
 	// Create router with dependencies and errHandlers.
 	rtr := router.NewRouter(backboneWrapper)
-	rtr.AddRoutes(backboneWrapper.GetEndpoints(), backbone)
+	rtr.AddRoutes(backboneWrapper)
 
 	// Also add a HTTP Handler directly to router.
 	rtr.Router.HandleFunc("GET /test1", backboneWrapper.Hndlr1)

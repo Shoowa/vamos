@@ -67,7 +67,8 @@ type Endpoint struct {
 // and add them to the http.ServeMux residing inside the Bundle struct. This
 // method also enforces that HTTP Handlers written by a downstream user must
 // return an error to conform to the errHandler type.
-func (b *Bundle) AddRoutes(routeMenu []Endpoint, deps *Backbone) {
+func (b *Bundle) AddRoutes(deps Gatherer) {
+	routeMenu := deps.GetEndpoints()
 	for _, endpoint := range routeMenu {
 		b.Router.HandleFunc(endpoint.VerbAndPath, deps.eHand(endpoint.Handler))
 	}
