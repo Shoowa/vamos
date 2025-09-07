@@ -20,6 +20,7 @@ type Gatherer interface {
 	GetBackbone() *Backbone
 	AddBackbone(*Backbone)
 	GetEndpoints() []Endpoint
+	eHand(errHandler) http.HandlerFunc
 }
 
 type errHandler func(http.ResponseWriter, *http.Request) error
