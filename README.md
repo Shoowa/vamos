@@ -1,15 +1,108 @@
 # ¡Vamos!
-This digital service is scaffolding for a Golang web server. It is configured
-with logging, metrics, health checks, & profiling. It is also integrated with
-secrets storage and a relational database.
+A library for a Golang microservice. It is configured with logging, metrics,
+health checks, & profiling. It is also integrated with secrets storage and a
+relational database.
 
 A corporate development team can deploy a prototype into a production
-environment. _¡Vamos!_ hastens development and eases operation.
+environment and expect operational maturity. _Vamos_ hastens development and
+eases operation.
 
-Let's learn how to develop, build, test, and operate this application.
+
+## Quick Start
+Provide the application a config file named _dev.json_ or _prod.json_ in the
+_config_ directory.  The file is concerned with the following:
+1. The location of the server guarding secrets.
+2. The location of a Postgres instance and its sensitive credential.
+3. Fake data to provide to Postgres for development & testing.
+4. Server details, e.g., port, timeouts.
+5. Frequency of healtchecks.
+6. Logging level.
+
+```json
+{
+    "test": {
+        "db_position": 0,
+        "fake_data": "testdata/fake_data_db1.sql"
+    },
+    "logger": {
+        "level": "debug"
+    },
+    "secrets": {
+        "openbao": {
+            "scheme": "http",
+            "host": "localhost",
+            "port": "8200"
+        }
+    },
+    "data": {
+        "relational": [
+            {
+                "host": "localhost",
+                "port": "5432",
+                "user": "tester",
+                "database": "test_data",
+                "sslmode": "disable",
+                "secret": "dev-postgres-test"
+            }
+        ]
+    },
+    "httpserver": {
+        "port": "8080",
+        "timeout_read": 5,
+        "timeout_write": 10,
+        "timeout_idle": 5
+    },
+    "health": {
+        "ping_db_timer": 60,
+        "heap_timer": 30,
+        "heap_size": 500,
+        "rout_timer": 30,
+        "routines_per_core": 300
+    }
+}
+```
+Notice _data.relational_ is an array. The sequence is preserved after the
+configuration is read. Accessing a database requires acknowledging its position
+in the array. In the example, the command to connect to a database includes a
+reference to its position in the array.
+```go
+// _example/main.go
+package main
+// abbreviated for clarity...
+
+const DB_FIRST = 0
+
+func main() {
+	cfg := config.Read()
+
+	db1, _ := rdbms.ConnectDB(cfg, DB_FIRST)
+```
+
+After all that is defined, determine the version number of the application. This
+is a good opportunity to include a tool that reads the Git Log and interprets
+Conventional Commits to determine the version.
+
+Provide two environmental variables: One to define whether this deployment
+exists in development or production, and another to offer the Openbao access
+token for secrets storage.
+```bash
+# Start the Dev Environment with the included makefile. See next section.
+~/your_app $ go env -w GOEXPERIMENT=greenteagc
+~/your_app $ go build -v -ldflags="-s -X 'github.com/Shoowa/vamos/config.AppVersion=v.0.0.0' " -o yourapp
+~/your_app $ APP_ENV=DEV OPENBAO_TOKEN=token ./yourapp
+```
 
 ## Development Environment
 This is for MacOS. You will need two things: _Podman_ and _Golang_.
+```bash
+~/vamos $ make podman_create_vm
+~/vamos $ podman ps -a
+```
+You will receive a new instance of Postgres with a user and database, and an
+instance of Openbao with a loaded password kept at _dev-postgres-test_. That
+path matches the config field _data.relational.[0].secret_ in the *_example/*.
+
+Postgres & Openbao will need a few minutes to start.
 
 A natively installed instance of Postgres is fine when it is the only
 dependency, but I imagine anyone using this will have an existing installation
@@ -18,8 +111,8 @@ inside a virtual machine to avoid disruptions. And we can add other databases
 and dependencies.
 
 A virtual machine managed by _podman_[^p1] will host databases needed by the
-application. The virtual machine runs Linux, specifically Fedora
-CoreOS.[^p2] And _systemD_ will manage containers hosting databases.
+application. The virtual machine runs Linux, specifically Fedora CoreOS.[^p2]
+And _systemD_ will manage containers hosting databases.
 
 The included _makefile_ offers a command that copies a few _.container_ files
 from a directory named *_linux/* to a new directory on the MacOS host. And
@@ -27,13 +120,6 @@ copies a _.sql_ initilization script for Postgres. Then uses _podman_ to create
 a virtual machine named *dev_vamos* that can read the new directory. Then uses
 _systemD_ to fetch container images and run them. And setup the Postgres
 instance in a container.
-
-All you need is an installation of _podman_. Postgres will need a minute to
-start.
-```bash
-~/vamos $ make podman_create_vm
-~/vamos $ podman ps -a
-```
 
 Instead of using _podman_ commands to manipulate the containers directly, we can
 use _systemD_ inside the Linux virtual machine to start and stop containers.
@@ -70,6 +156,17 @@ Connect to the database named *test_data* in the containerized Postgres instance
 from the MacOS host.
 ```bash
 ~/vamos $ psql -h localhost -U tester -d test_data
+```
+
+Inspect the condition of Openbao and whether or not it received a password.
+```bash
+~/vamos podman machine ssh dev_vamos "systemctl --user status secrets.target dev_openbao openbao_add_pw"
+```
+
+Change the password archived in Openbao as much as you want.
+```bash
+# httpie command
+~/vamos http POST :8200/v1/secret/data/dev-postgres-test X-Vault-Token:token Content-Type:application/json data:='{ "password": "openbao777" }'
 ```
 
 ### Postgres Database
@@ -109,12 +206,12 @@ RestartSec=10
 RequiredBy=databases.target
 ```
 
-The *_testdata/setup_db1.sql* file will be copied from the project on the host to
+The *_example/testdata/setup_db1.sql* file will be copied from the project on the host to
 the volume of the virtual machine, then mounted to the Postgres container.
 Postgres only reads this file once during its initilization. It will skip
 reading it whenever the container is started again.
 ```sql
--- _testdata/setup_db1.sql
+-- _example/testdata/setup_db1.sql
 DROP DATABASE IF EXISTS test_data;
 CREATE DATABASE test_data;
 CREATE USER tester WITH PASSWORD 'password';
@@ -487,7 +584,7 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 }
 ```
 
-The _Bundle_ method _AddRoutes(routeMenu []Endpoint, deps *Backbone)_
+The _Bundle_ method _AddRoutes(deps *Gatherer)_
 conveniently adds HTTP paths and handlers to the _http.ServeMux_, and wraps the
 custom _errHandler_ methods with the aforementioned _eHand_ method.
 ```go
@@ -501,7 +598,8 @@ type Endpoint struct {
 	Handler     errHandler
 }
 
-func (b *Bundle) AddRoutes(routeMenu []Endpoint, deps *Backbone) {
+func (b *Bundle) AddRoutes(deps *Gatherer) {
+	routeMenu := deps.GetEndpoints()
 	for _, endpoint := range routeMenu {
 		b.Router.HandleFunc(endpoint.VerbAndPath, deps.eHand(endpoint.Handler))
 	}
@@ -754,7 +852,6 @@ write the version of the application after each new commit & build.
 package config
 
 import (
-    "gopkg.in/yaml.v3"
     "os"
 )
 
@@ -845,7 +942,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-    // Direct app to read dev.yml
+    // Direct app to read dev.json
 	os.Setenv("APP_ENV", "DEV")
 
     // Reposition root of test executable.
@@ -1112,12 +1209,6 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 ### Logging Configuration
 Logging is configured as _debug_ in development or as _warn_ in production.
-```yaml
-# config/dev.yml
----
-logger:
-  level: debug
-```
 
 The level is read in _logging.go_.
 ```go
