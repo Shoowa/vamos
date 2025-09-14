@@ -40,3 +40,16 @@ func CreateCounter(name string, help string) prometheus.Counter {
 	prometheus.MustRegister(counter)
 	return counter
 }
+
+func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
+	opts := prometheus.GaugeOpts{
+		Namespace: ns,
+		Subsystem: ss,
+		Name:      name,
+		Help:      help,
+	}
+
+	gauge := prometheus.NewGauge(opts)
+	prometheus.MustRegister(gauge)
+	return gauge
+}
