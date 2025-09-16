@@ -67,3 +67,17 @@ func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Hi
 	prometheus.MustRegister(histogram)
 	return histogram
 }
+
+func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheus.Summary {
+	opts := prometheus.SummaryOpts{
+		Namespace:  ns,
+		Subsystem:  ss,
+		Name:       name,
+		Help:       help,
+		Objectives: obj,
+	}
+
+	sum := prometheus.NewSummary(opts)
+	prometheus.MustRegister(sum)
+	return sum
+}
