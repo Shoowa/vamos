@@ -53,3 +53,17 @@ func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
 	prometheus.MustRegister(gauge)
 	return gauge
 }
+
+func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Histogram {
+	opts := prometheus.HistogramOpts{
+		Namespace: ns,
+		Subsystem: ss,
+		Name:      name,
+		Help:      help,
+		Buckets:   buckets,
+	}
+
+	histogram := prometheus.NewHistogram(opts)
+	prometheus.MustRegister(histogram)
+	return histogram
+}
