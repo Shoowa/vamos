@@ -81,3 +81,14 @@ func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheu
 	prometheus.MustRegister(sum)
 	return sum
 }
+
+type HistogramWithTimer struct {
+	Graph prometheus.Histogram
+	Timer func() *prometheus.Timer
+}
+
+func CreateHistogramWithTimer(ns, ss, name, help string, buckets []float64) *HistogramWithTimer {
+	graph := CreateHistogram(ns, ss, name, help, buckets)
+	timer := func() *prometheus.Timer { return prometheus.NewTimer(graph) }
+	return &HistogramWithTimer{graph, timer}
+}
