@@ -2,8 +2,35 @@
 package metrics
 
 import (
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+func listOfMetrics() []prometheus.Collector {
+	return []prometheus.Collector{
+		HttpRequestCounter,
+		HttpRequestsGauge,
+	}
+}
+
+func createLoadedRegistry() *prometheus.Registry {
+	reg := prometheus.NewRegistry()
+	metrics := listOfMetrics()
+	for _, m := range metrics {
+		reg.MustRegister(m)
+	}
+	return reg
+}
+
+var registry = createLoadedRegistry()
+
+func CreateHandler() http.Handler {
+	options := promhttp.HandlerOpts{}
+	metricsHandler := promhttp.HandlerFor(registry, options)
+	return metricsHandler
+}
 
 func requestCounter() *prometheus.CounterVec {
 	options := prometheus.CounterOpts{
@@ -12,7 +39,6 @@ func requestCounter() *prometheus.CounterVec {
 	}
 	labels := []string{"status", "path", "method"}
 	counter := prometheus.NewCounterVec(options, labels)
-	prometheus.MustRegister(counter)
 	return counter
 }
 
@@ -24,7 +50,6 @@ func connectionsGauge() prometheus.Gauge {
 		Help: "Amount of active HTTP requests.",
 	}
 	gauge := prometheus.NewGauge(options)
-	prometheus.MustRegister(gauge)
 	return gauge
 }
 
@@ -37,7 +62,7 @@ func CreateCounter(name string, help string) prometheus.Counter {
 	}
 
 	counter := prometheus.NewCounter(opts)
-	prometheus.MustRegister(counter)
+	registry.MustRegister(counter)
 	return counter
 }
 
@@ -50,7 +75,7 @@ func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
 	}
 
 	gauge := prometheus.NewGauge(opts)
-	prometheus.MustRegister(gauge)
+	registry.MustRegister(gauge)
 	return gauge
 }
 
@@ -64,7 +89,7 @@ func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Hi
 	}
 
 	histogram := prometheus.NewHistogram(opts)
-	prometheus.MustRegister(histogram)
+	registry.MustRegister(histogram)
 	return histogram
 }
 
@@ -78,7 +103,7 @@ func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheu
 	}
 
 	sum := prometheus.NewSummary(opts)
-	prometheus.MustRegister(sum)
+	registry.MustRegister(sum)
 	return sum
 }
 

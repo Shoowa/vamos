@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/Shoowa/vamos/metrics"
 )
 
 // addOperationalRoutes adds health checks and metrics to the router.
@@ -12,7 +12,8 @@ func addOperationalRoutes(router *http.ServeMux, heh Gatherer) {
 	healthCheck := http.HandlerFunc(b.Healthcheck)
 	router.HandleFunc("GET /health", healthCheck)
 
-	router.Handle("GET /metrics", promhttp.Handler())
+	metricsHandler := metrics.CreateHandler()
+	router.Handle("GET /metrics", metricsHandler)
 }
 
 func (b *Backbone) Healthcheck(w http.ResponseWriter, r *http.Request) {
