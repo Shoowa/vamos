@@ -38,10 +38,10 @@
         "routines_per_core": 300
     },
     "metrics": {
-        "garbage_collection": true,
-        "memory": true,
-        "scheduler": true,
-        "cpu": true,
-        "lock": true
+        "garbage_collection": false,
+        "memory": false,
+        "scheduler": false,
+        "cpu": false,
+        "lock": false
   }
 }
