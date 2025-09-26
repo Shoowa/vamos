@@ -103,4 +103,5 @@ type Metrics struct {
 	Scheduler         bool `json:"scheduler"`
 	Cpu               bool `json:"cpu"`
 	Lock              bool `json:"lock"`
+	Process           bool `json:"process"`
 }

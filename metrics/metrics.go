@@ -67,6 +67,12 @@ func createLoadedRegistry() *prometheus.Registry {
 		reg.MustRegister(runtimeCollector)
 	}
 
+	if toggles.Process {
+		opt := collectors.ProcessCollectorOpts{}
+		p := collectors.NewProcessCollector(opt)
+		reg.MustRegister(p)
+	}
+
 	metrics := listOfMetrics()
 	for _, m := range metrics {
 		reg.MustRegister(m)

@@ -43,6 +43,7 @@
         "memory": false,
         "scheduler": false,
         "cpu": false,
-        "lock": false
+        "lock": false,
+        "process": false
   }
 }
