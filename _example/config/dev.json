@@ -37,5 +37,12 @@
         "heap_size": 500,
         "rout_timer": 30,
         "routines_per_core": 300
-    }
+    },
+    "metrics": {
+        "garbage_collection": true,
+        "memory": true,
+        "scheduler": true,
+        "cpu": true,
+        "lock": true
+  }
 }

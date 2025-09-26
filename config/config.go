@@ -38,6 +38,7 @@ type Config struct {
 	HttpServer *HttpServer `json:"httpserver"`
 	Health     *Health     `json:"health"`
 	Test       *Test       `json:"test"`
+	Metrics    *Metrics    `json:"metrics"`
 }
 
 type Logger struct {
@@ -94,4 +95,12 @@ type Health struct {
 type Test struct {
 	DbPosition int    `json:"db_position"`
 	FakeData   string `json:"fake_data"`
+}
+
+type Metrics struct {
+	GarbageCollection bool `json:"garbage_collection"`
+	Memory            bool `json:"memory"`
+	Scheduler         bool `json:"scheduler"`
+	Cpu               bool `json:"cpu"`
+	Lock              bool `json:"lock"`
 }

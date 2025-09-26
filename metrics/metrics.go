@@ -3,8 +3,11 @@ package metrics
 
 import (
 	"net/http"
+	"regexp"
 
+	"github.com/Shoowa/vamos/config"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -15,8 +18,55 @@ func listOfMetrics() []prometheus.Collector {
 	}
 }
 
+// addRuntimeMetrics can't return the internal.GoCollectorOptions, so this
+// function returns a struct that can accept the internal structs. When an
+// developer decides against using any of the runtime metrics, then the
+// NewGoCollector will not be created.
+func addRuntimeMetrics(toggles *config.Metrics) prometheus.Collector {
+	desiredRules := []collectors.GoRuntimeMetricsRule{}
+	if toggles.GarbageCollection {
+		desiredRules = append(desiredRules, collectors.MetricsGC)
+	}
+	if toggles.Memory {
+		desiredRules = append(desiredRules, collectors.MetricsMemory)
+	}
+	if toggles.Scheduler {
+		desiredRules = append(desiredRules, collectors.MetricsScheduler)
+	}
+	if toggles.Cpu {
+		cpu := regexp.MustCompile(`^/cpu/classes/.*`)
+		cpuRule := collectors.GoRuntimeMetricsRule{Matcher: cpu}
+		desiredRules = append(desiredRules, cpuRule)
+	}
+	if toggles.Lock {
+		lock := regexp.MustCompile(`^/sync/mutex/.*`)
+		lockRule := collectors.GoRuntimeMetricsRule{Matcher: lock}
+		desiredRules = append(desiredRules, lockRule)
+	}
+
+	if len(desiredRules) == 0 {
+		return nil
+	}
+
+	rules := collectors.WithGoCollectorRuntimeMetrics(desiredRules...)
+	noOldMemStats := collectors.WithGoCollectorMemStatsMetricsDisabled()
+
+	return collectors.NewGoCollector(noOldMemStats, rules)
+}
+
+// createLoadedRegistry reads the config file directly, breaking the convention
+// of accepting a config struct from the main function. I chose to do this,
+// because the custom registry is a package variable. And it is much easier to
+// add metrics to a package variable.
 func createLoadedRegistry() *prometheus.Registry {
+	toggles := config.Read().Metrics
+	runtimeCollector := addRuntimeMetrics(toggles)
+
 	reg := prometheus.NewRegistry()
+	if runtimeCollector != nil {
+		reg.MustRegister(runtimeCollector)
+	}
+
 	metrics := listOfMetrics()
 	for _, m := range metrics {
 		reg.MustRegister(m)
