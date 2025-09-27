@@ -10,7 +10,7 @@ eases operation.
 
 ## Quick Start
 Provide the application a config file named _dev.json_ or _prod.json_ in the
-_config_ directory.  The file is concerned with the following:
+_config_ directory. The file is concerned with the following:
 1. The location of the server guarding secrets.
 2. The location of a Postgres instance and its sensitive credential.
 3. Fake data to provide to Postgres for development & testing.
@@ -58,7 +58,15 @@ _config_ directory.  The file is concerned with the following:
         "heap_size": 500,
         "rout_timer": 30,
         "routines_per_core": 300
-    }
+    },
+    "metrics": {
+        "garbage_collection": false,
+        "memory": true,
+        "scheduler": false,
+        "cpu": false,
+        "lock": false,
+        "process": false
+  }
 }
 ```
 Notice _data.relational_ is an array. The sequence is preserved after the
@@ -673,9 +681,9 @@ func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 ```
 
 ### Metrics
-Metrics are created by _Prometheus_ in the package _metrics_ in the file
-_/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The package
-captures go runtime metrics, e.g., *go_threads*, *go_goroutines*, etc.[^m2]
+Metrics are created by _Prometheus_ in the package _metrics_ and scraped on the
+endpoint _/metrics_. The package captures go runtime metrics, e.g.,
+*go_threads*, *go_goroutines*, etc.[^m2]
 
 A convenient function for creating a Counter and registering it is available to
 the downstream consumer of this library. Simply provide a name and description
@@ -1158,8 +1166,8 @@ configuration file and access storage of sensitive credentials.
 
 
 ### Router Creation Requires An Interface
-The _NewRouter_ function accepts a custom interface named _Gatherer_, so
-that it can actually accept two different types of structs. The first struct,
+The _NewRouter_ function accepts a custom interface named _Gatherer_, so that it
+can actually accept two different types of structs. The first struct,
 _Backbone_,  will be directly used often in the library. The second will be used
 in a downstream executable as a wrapper around the _Backbone_. Both can conform
 to the _Gatherer_ interface by adopting certain methods enumerated in
@@ -1170,11 +1178,31 @@ it does ease testing. So I haphazardly drafted one.
 
 
 ### Metrics
-Metrics are created by _Prometheus_ in the package _metrics_ in the file
-_/metrics/metrics.go_ and scraped on the endpoint _/metrics_. The
-package captures go runtime metrics, e.g., *go_threads*, *go_goroutines*,
-etc.[^m2]
+Metrics are created by _Prometheus_ in the package _metrics_ and scraped on the
+endpoint _/metrics_.
 
+#### Configuration
+Several Prometheus Collectors[^m3] and their sub-metrics can be toggled on or
+off in the _config_ file. A set of runtime metrics measures garbage collection,
+memory, and the scheduler[^m4], and even the CPU and Mutexes.[^m5] A Process
+Collector measures the state of the CPU, MEM, file descriptors, and the start
+time of the process.[^m6]
+```json
+// config/dev.json
+"metrics": {
+    "garbage_collection": true,
+    "memory": true,
+    "scheduler": false,
+    "cpu": false,
+    "lock": false,
+    "process": false
+}
+```
+
+The _NewDBStatsCollector_ expects a _DB_ struct from the STLDIB[^m7], so I can't
+implement it with the _PGX_ connection pool struct.
+
+#### HTTP Requests
 New metrics needs to be registered to be activated.
 
 The routing middleware in _router/middleware.go_ counts the number of HTTP
@@ -1383,6 +1411,8 @@ func (b *Backbone) CheckHeapSize(threshold uint64) {
 Another method can be drafted that will read from the buffer and exfiltrate the
 data for review by developers & operations staff.
 
+#### Links
+- [Guide](https://github.com/Shoowa/vamos?tab=readme-ov-file#vamos)
 
 
 [^p1]: https://podman.io/docs/installation#macos
@@ -1397,4 +1427,9 @@ data for review by developers & operations staff.
 [^i1]: https://pkg.go.dev/runtime/pprof#WriteHeapProfile
 [^m1]: https://prometheus.io/docs/tutorials/understanding_metric_types/
 [^m2]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#hdr-Advanced_Uses_of_the_Registry
+[^m3]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Collector
+[^m4]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/collectors#pkg-variables
+[^m5]: https://golang.bg/src/runtime/metrics/description.go
+[^m6]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/collectors#NewProcessCollector
+[^m7]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/collectors#NewDBStatsCollector
 [^r1]: https://tip.golang.org/doc/go1.22#enhanced_routing_patterns
