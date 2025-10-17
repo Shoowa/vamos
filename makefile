@@ -3,13 +3,13 @@
 ####### Directories are layered as follows: ########
 ####### host -> VM -> container ####################
 ####################################################
-SYSD_FILES_ON_HOST = _linux/*.{container,service,target}
+SYSD_FILES_ON_HOST = _linux/*.{container,service,target,conf}
 VOLUME_VM_CONTAINER_FILES = /data/setup/*.container
 SYSD_DIR_ON_VM = .config/containers/systemd
 SYSD_PODMAN_GEN = /usr/lib/systemd/system-generators/podman-system-generator
 SYSD_RELOAD = systemctl --user daemon-reload
-DEV_TARGETS = secrets.target databases.target
-DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw
+DEV_TARGETS = secrets.target databases.target queue.target
+DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats
 
 podman_create_vm:
 	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{couchdb1,postgres,setup} #Create VM volume on MacOS Host.
