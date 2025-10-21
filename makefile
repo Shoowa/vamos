@@ -13,7 +13,7 @@ DEV_TARGETS = secrets.target databases.target queue.target
 DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats
 
 podman_create_vm:
-	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{couchdb1,postgres,setup} #Create VM volume on MacOS Host.
+	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{postgres,setup} #Create VM volume on MacOS Host.
 	-cp ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR} #Add SystemD scripts to VM.
 	-cp _example/testdata/setup_db1.sql ${HOST_SETUP_DIR} #Add sql script to Postgres container volume
 	podman machine init --cpus=4 -m=2048 --disk-size 8 dev_vamos -v ~/podman_vm:/data # Define hardware of VM
