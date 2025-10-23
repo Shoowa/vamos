@@ -11,16 +11,23 @@ SYSD_PODMAN_GEN = /usr/lib/systemd/system-generators/podman-system-generator
 SYSD_RELOAD = systemctl --user daemon-reload
 DEV_TARGETS = secrets.target databases.target queue.target
 DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats
+WEB_CFSSL = https://github.com/cloudflare/cfssl/releases/download/
+CFSSL = v1.6.5/cfssl_1.6.5_linux_arm64
+CFSSLJSON = v1.6.5/cfssljson_1.6.5_linux_arm64
+BIN = /usr/local/bin/
 
 podman_create_vm:
-	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{postgres,setup} #Create VM volume on MacOS Host.
+	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{postgres,setup,ca} #Create VM volume on MacOS Host.
 	-cp ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR} #Add SystemD scripts to VM.
 	-cp _example/testdata/setup_db1.sql ${HOST_SETUP_DIR} #Add sql script to Postgres container volume
 	podman machine init --cpus=4 -m=2048 --disk-size 8 dev_vamos -v ~/podman_vm:/data # Define hardware of VM
 	podman system connection default dev_vamos # set connection for dev_vamos VM as the default connection
 	podman machine start dev_vamos # Start the VM
 	podman machine ssh dev_vamos \
-		"mkdir ${SYSD_DIR_ON_VM} && cp ${VOLUME_VM_CONTAINER_FILES} ${SYSD_DIR_ON_VM}; \
+		"sudo curl -o cfssl --output-dir ${BIN} -SL ${WEB_CFSSL}${CFSSL}; \
+		sudo curl -o cfssljson --output-dir ${BIN} -SL ${WEB_CFSSL}${CFSSLJSON}; \
+		sudo chmod +x ${BIN}cfssl ${BIN}cfssljson; \
+		mkdir ${SYSD_DIR_ON_VM} && cp ${VOLUME_VM_CONTAINER_FILES} ${SYSD_DIR_ON_VM}; \
 		cp /data/setup/*.{service,target} .config/systemd/user; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
