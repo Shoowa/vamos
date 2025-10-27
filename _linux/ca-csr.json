@@ -1,0 +1,18 @@
+{
+    "CN": "Vamos Development Certificate Authority",
+    "key": {
+        "algo": "ecdsa",
+        "size": 256
+    },
+    "names": [
+        {
+            "CN": "devroot",
+            "C": "US",
+            "ST": "NY",
+            "L": "New York City",
+            "O": "Vamos",
+            "OU": "R&D"
+        }
+    ]
+}
+

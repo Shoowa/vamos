@@ -1,0 +1,19 @@
+{
+    "CN": "nats",
+    "hosts": [
+        "nats.local",
+        "nats"
+    ],
+    "key": {
+        "algo": "ecdsa",
+        "size": 256
+    },
+    "names": [
+        {
+            "C": "US",
+            "ST": "NY",
+            "L": "Astoria"
+        }
+    ]
+}
+
