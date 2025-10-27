@@ -6,8 +6,8 @@ Image=docker.io/library/nats:2-alpine
 ContainerName=nats
 PublishPort=4222:4222
 Volume=/data/setup/nats-server.conf:/etc/nats/nats-server.conf
-Volume=/data/setup/nats_key.pem:/nats_key.pem
-Volume=/data/setup/nats_cert.pem:/nats_cert.pem
+Volume=/data/ca/private/nats-key.pem:/nats_key.pem
+Volume=/data/ca/public/nats.pem:/nats_cert.pem
 PidsLimit=50
 
 [Service]
