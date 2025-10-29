@@ -1,0 +1,18 @@
+{
+    "CN": "dev_vamos_app",
+    "hosts": [
+        "dev_vamos_app"
+    ],
+    "key": {
+        "algo": "ecdsa",
+        "size": 256
+    },
+    "names": [
+        {
+            "C": "US",
+            "ST": "NY",
+            "L": "Yorkville"
+        }
+    ]
+}
+

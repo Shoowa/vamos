@@ -3,7 +3,7 @@
 ####### Directories are layered as follows: ########
 ####### host -> VM -> container ####################
 ####################################################
-SYSD_FILES_ON_HOST = _linux/*.{container,service,target,conf}
+SYSD_FILES_ON_HOST = _linux/*.{container,service,target,conf,sh}
 CA_FILES_ON_HOST = _linux/{ca*,server*}.json
 CA_FILES_ON_VM = ~/podman_vm/ca/
 VOLUME_VM_CONTAINER_FILES = /data/setup/*.container
@@ -12,7 +12,7 @@ SYSD_DIR_ON_VM = .config/containers/systemd
 SYSD_PODMAN_GEN = /usr/lib/systemd/system-generators/podman-system-generator
 SYSD_RELOAD = systemctl --user daemon-reload
 DEV_TARGETS = secrets.target databases.target queue.target
-DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats
+DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats openbao_add_pki
 WEB_CFSSL = https://github.com/cloudflare/cfssl/releases/download/
 CFSSL = v1.6.5/cfssl_1.6.5_linux_arm64
 CFSSLJSON = v1.6.5/cfssljson_1.6.5_linux_arm64
@@ -36,6 +36,7 @@ podman_create_vm:
 		cd /data/ca/; mkdir {root,public,private}; \
 		cfssl gencert -initca ca-csr.json | cfssljson -bare root/ca -; \
 		${CREATE_CERT} -profile=server server_nats.json | cfssljson -bare public/nats; \
+		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/nats; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
@@ -56,6 +57,7 @@ podman_copy_from_host_to_vm:
 		cd /data/ca/; \
 		cfssl gencert -initca ca-csr.json | cfssljson -bare root/ca -; \
 		${CREATE_CERT} -profile=server server_nats.json | cfssljson -bare public/nats; \
+		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/app; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"

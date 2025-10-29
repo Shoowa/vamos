@@ -1,8 +1,8 @@
 [Unit]
 Description=Launch an open source secrets warehouse.
 DefaultDependencies=no
-Before=openbao_add_pw.service
-Requires=openbao_add_pw.service
+Before=openbao_add_pw.service openbao_add_pki.service
+Requires=openbao_add_pw.service openbao_add_pki.service
 
 [Container]
 Image=quay.io/openbao/openbao:2.3

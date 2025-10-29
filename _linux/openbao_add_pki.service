@@ -1,0 +1,10 @@
+[Unit]
+Description=Add certificates and keys to OpenBao
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+Restart=on-failure
+RestartSec=5
+RemainAfterExit=yes
+ExecStart=bash /data/setup/add_encoded_cert_and_key.sh
