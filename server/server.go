@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log/slog"
 	"net"
@@ -23,7 +24,7 @@ const GRACE_PERIOD = time.Second * 15
 // BaseContext, and will be shared across all inbound requests. The associated
 // cancelFunc will notify the HTTP Handlers to terminate active connections when
 // the server is ordered to halt.
-func NewServer(cfg *config.Config, router http.Handler) *http.Server {
+func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate) *http.Server {
 	base, stop := context.WithCancel(context.Background())
 	s := &http.Server{
 		Addr:         ":" + cfg.HttpServer.Port,
@@ -32,6 +33,10 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 		WriteTimeout: time.Second * time.Duration(cfg.HttpServer.TimeoutWrite),
 		IdleTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutIdle),
 		BaseContext:  func(lstnr net.Listener) context.Context { return base },
+		TLSConfig: &tls.Config{
+			MinVersion:     tls.VersionTLS13,
+			Certificates: []tls.Certificate{*cert},
+		},
 	}
 	s.RegisterOnShutdown(stop)
 	return s
@@ -39,7 +44,7 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 
 // gracefulIgnition launches a webserver.
 func gracefulIgnition(s *http.Server) {
-	err := s.ListenAndServe()
+	err := s.ListenAndServeTLS("", "")
 	if !errors.Is(err, http.ErrServerClosed) {
 		panic(err)
 	}
