@@ -2,6 +2,8 @@ package secrets
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/base64"
 	"errors"
 
 	openbao "github.com/openbao/openbao/api/v2"
@@ -66,4 +68,33 @@ func ReadPathAndKey(c *openbao.Client, secretPath, key string) (string, error) {
 		return "", errors.New("Type assertion failed on value of PW field.")
 	}
 	return v, nil
+}
+
+func ReadTlsCertAndKey(c *openbao.Client, cfg *config.Config, keyField, certField string) (*tls.Certificate, error) {
+	cert64, certErr := ReadPathAndKey(c, cfg.HttpServer.Certificate, certField)
+	if certErr != nil {
+		return nil, certErr
+	}
+
+	key64, keyErr := ReadPathAndKey(c, cfg.HttpServer.Key, keyField)
+	if keyErr != nil {
+		return nil, keyErr
+	}
+
+	cert, decodeCertErr := base64.StdEncoding.DecodeString(cert64)
+	if decodeCertErr != nil {
+		return nil, decodeCertErr
+	}
+
+	key, decodeKeyErr := base64.StdEncoding.DecodeString(key64)
+	if decodeKeyErr != nil {
+		return nil, decodeKeyErr
+	}
+
+	pair, X509Err := tls.X509KeyPair([]byte(cert), []byte(key))
+	if X509Err != nil {
+		return nil, X509Err
+	}
+
+	return &pair, nil
 }
