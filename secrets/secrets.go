@@ -54,3 +54,16 @@ func BuildAndRead(cfg *config.Config, secretPath string) (string, error) {
 
 	return pw, nil
 }
+
+func ReadPathAndKey(c *openbao.Client, secretPath, key string) (string, error) {
+	secret, secretErr := c.KVv2("secret").Get(context.Background(), secretPath)
+	if secretErr != nil {
+		return "", secretErr
+	}
+
+	v, ok := secret.Data[key].(string)
+	if !ok {
+		return "", errors.New("Type assertion failed on value of PW field.")
+	}
+	return v, nil
+}
