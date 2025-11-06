@@ -82,6 +82,8 @@ type HttpServer struct {
 	TimeoutRead  int    `json:"timeout_read"`
 	TimeoutWrite int    `json:"timeout_write"`
 	TimeoutIdle  int    `json:"timeout_idle"`
+	Certificate  string `json:"certificate"`
+	Key          string `json:"key"`
 }
 
 type Health struct {
