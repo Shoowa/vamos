@@ -7,4 +7,5 @@ Type=oneshot
 Restart=on-failure
 RestartSec=5
 RemainAfterExit=yes
+ExecStart=/usr/bin/sleep 5
 ExecStart=bash /data/setup/add_encoded_cert_and_key.sh
