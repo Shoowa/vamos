@@ -1,7 +1,8 @@
 {
     "CN": "dev_vamos_app",
     "hosts": [
-        "dev_vamos_app"
+        "dev_vamos_app",
+        "localhost"
     ],
     "key": {
         "algo": "ecdsa",
