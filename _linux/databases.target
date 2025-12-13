@@ -1,7 +1,7 @@
 [Unit]
 Description=A group of databases
-Requires=dev_postgres.service
-Before=dev_postgres.service
+Requires=dev_postgres.service dev_redis.service
+Before=dev_postgres.service dev_redis.service
 
 [Install]
 RequiredBy=basic.target

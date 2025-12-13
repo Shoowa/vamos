@@ -1,0 +1,15 @@
+[Unit]
+Description=Launch Redis server as a cache.
+
+[Container]
+Image=docker.io/library/redis:8.4-alpine
+ContainerName=redis
+PublishPort=6379:6379
+Volume=/data/setup/redis.conf:/usr/local/etc/redis/redis.conf
+
+[Service]
+Restart=on-failure
+RestartSec=10
+
+[Install]
+RequiredBy=databases.target

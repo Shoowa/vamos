@@ -3,16 +3,18 @@
 ####### Directories are layered as follows: ########
 ####### host -> VM -> container ####################
 ####################################################
-SYSD_FILES_ON_HOST = _linux/*.{container,service,target,conf,sh}
+SYSD_FILES_ON_HOST = _linux/*.{container,service,target,conf,sh,d}
 CA_FILES_ON_HOST = _linux/{ca*,server*}.json
 CA_FILES_ON_VM = ~/podman_vm/ca/
 VOLUME_VM_CONTAINER_FILES = /data/setup/*.container
+HOST_DIRS = ~/podman_vm/{postgres,setup,ca}
 HOST_SETUP_DIR = ~/podman_vm/setup
 SYSD_DIR_ON_VM = .config/containers/systemd
 SYSD_PODMAN_GEN = /usr/lib/systemd/system-generators/podman-system-generator
+SYSD_SUBSTITUTION_DIR = /etc/systemd/user/
 SYSD_RELOAD = systemctl --user daemon-reload
 DEV_TARGETS = secrets.target databases.target queue.target
-DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats openbao_add_pki
+DEV_SERVICES = dev_openbao dev_postgres openbao_add_pw nats openbao_add_pki dev_redis
 WEB_CFSSL = https://github.com/cloudflare/cfssl/releases/download/
 CFSSL = v1.6.5/cfssl_1.6.5_linux_arm64
 CFSSLJSON = v1.6.5/cfssljson_1.6.5_linux_arm64
@@ -20,8 +22,8 @@ BIN = /usr/local/bin/
 CREATE_CERT = cfssl gencert -config=ca-config.json -ca=root/ca.pem -ca-key=root/ca-key.pem
 
 podman_create_vm:
-	-rm -rf ~/podman_vm && mkdir -p ~/podman_vm/{postgres,setup,ca} #Create VM volume on MacOS Host.
-	-cp ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR} #Add SystemD scripts to VM.
+	-mkdir -p ${HOST_DIRS} #Create VM volume on MacOS Host.
+	-cp -r ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR} #Add SystemD scripts to VM.
 	-cp _example/testdata/setup_db1.sql ${HOST_SETUP_DIR} #Add sql script to Postgres container volume
 	-cp ${CA_FILES_ON_HOST} ${CA_FILES_ON_VM} # Add CA Config files to VM for eventual CFSSL commands.
 	podman machine init --cpus=4 -m=2048 --disk-size 8 dev_vamos -v ~/podman_vm:/data # Define hardware of VM
@@ -32,11 +34,13 @@ podman_create_vm:
 		sudo curl -o cfssljson --output-dir ${BIN} -SL ${WEB_CFSSL}${CFSSLJSON}; \
 		sudo chmod +x ${BIN}cfssl ${BIN}cfssljson; \
 		mkdir ${SYSD_DIR_ON_VM} && cp ${VOLUME_VM_CONTAINER_FILES} ${SYSD_DIR_ON_VM}; \
+		sudo cp -r /data/setup/*.d ${SYSD_SUBSTITUTION_DIR}; \
 		cp /data/setup/*.{service,target} .config/systemd/user; \
 		cd /data/ca/; mkdir {root,public,private}; \
 		cfssl gencert -initca ca-csr.json | cfssljson -bare root/ca -; \
 		${CREATE_CERT} -profile=server server_nats.json | cfssljson -bare public/nats; \
 		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/nats; \
+		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
@@ -48,16 +52,18 @@ podman_delete_vm:
 	rm -rf ~/podman_vm/*
 
 podman_copy_from_host_to_vm:
-	-cp ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR}
+	-cp -r ${SYSD_FILES_ON_HOST} ${HOST_SETUP_DIR}
 	-cp _example/testdata/setup_db1.sql ${HOST_SETUP_DIR}
 	-cp ${CA_FILES_ON_HOST} ${CA_FILES_ON_VM}
 	podman machine ssh dev_vamos \
 		"cp ${VOLUME_VM_CONTAINER_FILES} ${SYSD_DIR_ON_VM}; \
+		sudo cp -r /data/setup/*.d ${SYSD_SUBSTITUTION_DIR}; \
 		cp /data/setup/*.{service,target} .config/systemd/user; \
 		cd /data/ca/; \
 		cfssl gencert -initca ca-csr.json | cfssljson -bare root/ca -; \
 		${CREATE_CERT} -profile=server server_nats.json | cfssljson -bare public/nats; \
 		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/app; \
+		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
