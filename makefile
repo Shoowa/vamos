@@ -39,7 +39,7 @@ podman_create_vm:
 		cd /data/ca/; mkdir {root,public,private}; \
 		cfssl gencert -initca ca-csr.json | cfssljson -bare root/ca -; \
 		${CREATE_CERT} -profile=server server_nats.json | cfssljson -bare public/nats; \
-		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/nats; \
+		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/app; \
 		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
