@@ -46,5 +46,11 @@
         "cpu": false,
         "lock": false,
         "process": false
-  }
+    },
+    "cache": {
+          "host": "localhost",
+          "port": "6379",
+          "db": 0,
+          "secret": "dev-redis-test"
+    }
 }

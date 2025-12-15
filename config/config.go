@@ -39,6 +39,7 @@ type Config struct {
 	Health     *Health     `json:"health"`
 	Test       *Test       `json:"test"`
 	Metrics    *Metrics    `json:"metrics"`
+	Cache      *Cache      `json:"cache"`
 }
 
 type Logger struct {
@@ -106,4 +107,11 @@ type Metrics struct {
 	Cpu               bool `json:"cpu"`
 	Lock              bool `json:"lock"`
 	Process           bool `json:"process"`
+}
+
+type Cache struct {
+	Host   string `json:"host"`
+	Port   string `json:"port"`
+	Db     int    `json:"db"`
+	Secret string `json:"secret"`
 }
