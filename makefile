@@ -70,6 +70,11 @@ podman_copy_from_host_to_vm:
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
 
+podman_reset_secrets: podman_copy_from_host_to_vm
+	sleep 2;
+	podman machine ssh dev_vamos \
+		"systemctl --user restart openbao_add_pw openbao_add_pki"
+
 # make systemd_verify name=dev_postgres
 systemd_verify:
 	podman machine ssh dev_vamos "systemd-analyze --user --generators=true verify ${name}.service"
