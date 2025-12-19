@@ -43,6 +43,7 @@ func ReadSecret(c *openbao.Client, secretPath string) (string, error) {
 
 func BuildAndRead(cfg *config.Config, secretPath string) (string, error) {
 	oCfg := ReadConfig(cfg)
+	cfg.Secrets.Openbao.ReadToken()
 
 	c, cErr := BuildClient(oCfg, cfg.Secrets.Openbao.Token)
 	if cErr != nil {
