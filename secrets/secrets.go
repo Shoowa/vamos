@@ -18,13 +18,13 @@ func ReadConfig(cfg *config.Config) *openbao.Config {
 	return clientConfig
 }
 
-func BuildClient(obCfg *openbao.Config, cfg *config.Config) (*openbao.Client, error) {
+func BuildClient(obCfg *openbao.Config, token string) (*openbao.Client, error) {
 	client, err := openbao.NewClient(obCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	client.SetToken(cfg.Secrets.Openbao.Token)
+	client.SetToken(token)
 	return client, nil
 }
 
@@ -44,7 +44,7 @@ func ReadSecret(c *openbao.Client, secretPath string) (string, error) {
 func BuildAndRead(cfg *config.Config, secretPath string) (string, error) {
 	oCfg := ReadConfig(cfg)
 
-	c, cErr := BuildClient(oCfg, cfg)
+	c, cErr := BuildClient(oCfg, cfg.Secrets.Openbao.Token)
 	if cErr != nil {
 		return "", cErr
 	}

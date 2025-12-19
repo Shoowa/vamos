@@ -75,11 +75,14 @@ type Openbao struct {
 }
 
 func (o *Openbao) ReadConfig() string {
-	o.Token = os.Getenv("OPENBAO_TOKEN")
 	return fmt.Sprintf(
 		"%v://%v:%v",
 		o.Scheme, o.Host, o.Port,
 	)
+}
+
+func (o *Openbao) ReadToken() {
+	o.Token = os.Getenv("OPENBAO_TOKEN")
 }
 
 type Data struct {
