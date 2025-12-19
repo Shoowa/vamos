@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 var AppVersion string
@@ -17,7 +19,22 @@ func Read() *Config {
 
 	jsonFile, errFile := os.ReadFile(eFile)
 	if errFile != nil {
-		panic("No config file!")
+		dirName := os.Getenv("PROJECT_NAME")
+		if dirName != "" {
+			os.Setenv("APP_ENV", "DEV")
+			wd, _ := os.Getwd()
+			for !strings.HasSuffix(wd, dirName) {
+				wd = filepath.Dir(wd)
+			}
+			chdirErr := os.Chdir(wd)
+			if chdirErr != nil {
+				panic(chdirErr.Error())
+			}
+			jsonFile, errFile = os.ReadFile("config/dev.json")
+		}
+		if errFile != nil {
+			panic("No config file!")
+		}
 	}
 
 	var config Config
