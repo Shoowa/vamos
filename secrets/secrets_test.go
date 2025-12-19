@@ -23,8 +23,9 @@ func Test_Configuration(t *testing.T) {
 	cfg := config.Read()
 	o := cfg.Secrets.Openbao
 	o.ReadConfig()
-	client := ReadConfig(cfg)
+	config := ReadConfig(cfg)
+	o.ReadToken()
 
-	Assert(t, strings.Contains(client.Address, "localhost"), "URL misconfigured")
+	Assert(t, strings.Contains(config.Address, "localhost"), "URL misconfigured")
 	Equals(t, "token", o.Token)
 }
