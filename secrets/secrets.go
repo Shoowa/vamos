@@ -72,26 +72,26 @@ func BuildAndRead(cfg *config.Config, secretPath string) (string, error) {
 	return pw, nil
 }
 
-func ReadPathAndKey(c *openbao.Client, secretPath, key string) (string, error) {
-	secret, secretErr := c.KVv2("secret").Get(context.Background(), secretPath)
+func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
+	secret, secretErr := sk.Openbao.KVv2("secret").Get(context.Background(), secretPath)
 	if secretErr != nil {
 		return "", secretErr
 	}
 
 	v, ok := secret.Data[key].(string)
 	if !ok {
-		return "", errors.New("Type assertion failed on value of PW field.")
+		return "", errors.New("Type assertion failed on the value.")
 	}
 	return v, nil
 }
 
-func ReadTlsCertAndKey(c *openbao.Client, cfg *config.Config, keyField, certField string) (*tls.Certificate, error) {
-	cert64, certErr := ReadPathAndKey(c, cfg.HttpServer.Certificate, certField)
+func (sk *SkeletonKey) ReadTlsCertAndKey(cfg *config.Config, keyField, certField string) (*tls.Certificate, error) {
+	cert64, certErr := sk.ReadPathAndKey(cfg.HttpServer.Certificate, certField)
 	if certErr != nil {
 		return nil, certErr
 	}
 
-	key64, keyErr := ReadPathAndKey(c, cfg.HttpServer.Key, keyField)
+	key64, keyErr := sk.ReadPathAndKey(cfg.HttpServer.Key, keyField)
 	if keyErr != nil {
 		return nil, keyErr
 	}
