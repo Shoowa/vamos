@@ -11,6 +11,20 @@ import (
 	"github.com/Shoowa/vamos/config"
 )
 
+type SkeletonKey struct {
+	Openbao *openbao.Client
+}
+
+func (sk *SkeletonKey) Create(cfg *config.Config) {
+	cfg.Secrets.Openbao.ReadToken()
+	clientConfig := ReadConfig(cfg)
+	client, err := BuildClient(clientConfig, cfg.Secrets.Openbao.Token)
+	if err != nil {
+		panic(err.Error())
+	}
+	sk.Openbao = client
+}
+
 func ReadConfig(cfg *config.Config) *openbao.Config {
 	url := cfg.Secrets.Openbao.ReadConfig()
 	clientConfig := openbao.DefaultConfig()
