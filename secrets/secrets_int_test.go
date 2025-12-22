@@ -3,7 +3,6 @@
 package secrets_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/Shoowa/vamos/config"
@@ -32,20 +31,6 @@ func Test_PostgresPassword(t *testing.T) {
 	}
 
 	Equals(t, PASSWORD, pw)
-}
-
-func Test_SkeletonKeyOpenbao(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
-	sk := new(SkeletonKey)
-	sk.Create(cfg)
-
-	addr := sk.Openbao.Address()
-	tok := sk.Openbao.Token()
-	Assert(t, strings.Contains(addr, "localhost"), "Lacks localhost in host address.")
-	Assert(t, strings.Contains(tok, "token"), "Lacks token from environment.")
 }
 
 func Test_ReadValueFromOpenbao(t *testing.T) {

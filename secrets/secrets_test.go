@@ -16,16 +16,16 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func Test_Configuration(t *testing.T) {
+func Test_SkeletonKeyOpenbao(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
 
 	cfg := config.Read()
-	o := cfg.Secrets.Openbao
-	o.ReadConfig()
-	config := ReadConfig(cfg)
-	o.ReadToken()
+	sk := new(SkeletonKey)
+	sk.Create(cfg)
 
-	Assert(t, strings.Contains(config.Address, "localhost"), "URL misconfigured")
-	Equals(t, "token", o.Token)
+	addr := sk.Openbao.Address()
+	tok := sk.Openbao.Token()
+	Assert(t, strings.Contains(addr, "localhost"), "Lacks localhost in host address.")
+	Assert(t, strings.Contains(tok, "token"), "Lacks token from environment.")
 }
