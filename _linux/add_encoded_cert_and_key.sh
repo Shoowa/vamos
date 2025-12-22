@@ -27,3 +27,16 @@ curl -H "X-Vault-Token: token" \
   }
 }
 EOF
+
+curl -H "X-Vault-Token: token" \
+  http://localhost:8200/v1/secret/data/intermediate-ca \
+  -H "Content-Type: application/json" \
+  --request POST \
+  --data @- <<EOF
+{
+  "data" :
+  {
+    "int_ca": "$(base64 --wrap=0 /data/ca/root/ca.pem)"
+  }
+}
+EOF
