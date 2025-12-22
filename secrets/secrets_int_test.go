@@ -12,20 +12,21 @@ import (
 )
 
 const (
-	PASSWORD = "OpenBao123"
+	PASSWORD     = "OpenBao123"
 	REDIS_SECRET = "dev-redis-test"
 	REDIS_PW     = "ReDiS4LiFe"
-
 )
 
-func Test_Connection(t *testing.T) {
+func Test_PostgresPassword(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
 
 	cfg := config.Read()
 	db := cfg.Data.Relational[0]
+	sk := new(SkeletonKey)
+	sk.Create(cfg)
 
-	pw, pwErr := BuildAndRead(cfg, db.Secret)
+	pw, pwErr := sk.ReadPathAndKey(db.Secret, "password")
 	if pwErr != nil {
 		t.Error(pwErr.Error())
 	}
