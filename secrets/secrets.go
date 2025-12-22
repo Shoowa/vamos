@@ -17,22 +17,22 @@ type SkeletonKey struct {
 
 func (sk *SkeletonKey) Create(cfg *config.Config) {
 	cfg.Secrets.Openbao.ReadToken()
-	clientConfig := ReadConfig(cfg)
-	client, err := BuildClient(clientConfig, cfg.Secrets.Openbao.Token)
+	clientConfig := readConfig(cfg)
+	client, err := buildClient(clientConfig, cfg.Secrets.Openbao.Token)
 	if err != nil {
 		panic(err.Error())
 	}
 	sk.Openbao = client
 }
 
-func ReadConfig(cfg *config.Config) *openbao.Config {
+func readConfig(cfg *config.Config) *openbao.Config {
 	url := cfg.Secrets.Openbao.ReadConfig()
 	clientConfig := openbao.DefaultConfig()
 	clientConfig.Address = url
 	return clientConfig
 }
 
-func BuildClient(obCfg *openbao.Config, token string) (*openbao.Client, error) {
+func buildClient(obCfg *openbao.Config, token string) (*openbao.Client, error) {
 	client, err := openbao.NewClient(obCfg)
 	if err != nil {
 		return nil, err
