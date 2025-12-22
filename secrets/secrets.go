@@ -42,36 +42,6 @@ func BuildClient(obCfg *openbao.Config, token string) (*openbao.Client, error) {
 	return client, nil
 }
 
-func ReadSecret(c *openbao.Client, secretPath string) (string, error) {
-	secret, secretErr := c.KVv2("secret").Get(context.Background(), secretPath)
-	if secretErr != nil {
-		return "", secretErr
-	}
-
-	v, ok := secret.Data["password"].(string)
-	if !ok {
-		return "", errors.New("Type assertion failed on value of PW field.")
-	}
-	return v, nil
-}
-
-func BuildAndRead(cfg *config.Config, secretPath string) (string, error) {
-	oCfg := ReadConfig(cfg)
-	cfg.Secrets.Openbao.ReadToken()
-
-	c, cErr := BuildClient(oCfg, cfg.Secrets.Openbao.Token)
-	if cErr != nil {
-		return "", cErr
-	}
-
-	pw, pwErr := ReadSecret(c, secretPath)
-	if pwErr != nil {
-		return "", pwErr
-	}
-
-	return pw, nil
-}
-
 func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
 	secret, secretErr := sk.Openbao.KVv2("secret").Get(context.Background(), secretPath)
 	if secretErr != nil {
