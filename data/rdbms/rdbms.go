@@ -42,7 +42,9 @@ func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
 	}
 
 	pgxConfig.BeforeConnect = func(ctx context.Context, cc *pgx.ConnConfig) error {
-		pw, pwErr := secrets.BuildAndRead(cfg, db.Secret)
+		secretsReader := new(secrets.SkeletonKey)
+		secretsReader.Create(cfg)
+		pw, pwErr := secretsReader.ReadPathAndKey(db.Secret, "password")
 		if pwErr != nil {
 			return pwErr
 		}
