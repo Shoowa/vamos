@@ -1032,10 +1032,14 @@ package rdbms
 // abbreviated for clarity...
 
 func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
+	db := WhichDB(cfg, dbPosition)
+    // abbreviated function body for clarity...
+
 	pgxConfig.BeforeConnect = func(ctx context.Context, cc *pgx.ConnConfig) error {
         secretsReader := new(secrets.SkeletonKey)
         secretsReader.Create(cfg)
-		pw, pwErr := secretsReader.ReadPathAndKey(db.Secret, "password")
+
+		pw, pwErr := secretsReader.ReadPathAndKey(db.Secret, db.SecretKey)
 		if pwErr != nil {
 			return pwErr
 		}
