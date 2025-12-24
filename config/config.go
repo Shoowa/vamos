@@ -90,13 +90,13 @@ type Data struct {
 }
 
 type Rdb struct {
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	User     string `json:"user"`
-	Database string `json:"database"`
-	Sslmode  string `json:"sslmode"`
-	Secret   string `json:"secret"`
-	SecretKey   string `json:"secret_key"`
+	Host      string `json:"host"`
+	Port      string `json:"port"`
+	User      string `json:"user"`
+	Database  string `json:"database"`
+	Sslmode   string `json:"sslmode"`
+	Secret    string `json:"secret"`
+	SecretKey string `json:"secret_key"`
 }
 
 type HttpServer struct {
@@ -131,9 +131,9 @@ type Metrics struct {
 }
 
 type Cache struct {
-	Host   string `json:"host"`
-	Port   string `json:"port"`
-	Db     int    `json:"db"`
-	Secret string `json:"secret"`
-	SecretKey   string `json:"secret_key"`
+	Host      string `json:"host"`
+	Port      string `json:"port"`
+	Db        int    `json:"db"`
+	Secret    string `json:"secret"`
+	SecretKey string `json:"secret_key"`
 }
