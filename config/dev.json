@@ -20,6 +20,7 @@
                 "user": "tester",
                 "database": "test_data",
                 "sslmode": "disable",
+                "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
         ]
@@ -51,6 +52,7 @@
           "host": "localhost",
           "port": "6379",
           "db": 0,
+          "secret_key": "password",
           "secret": "dev-redis-test"
     }
 }

@@ -96,6 +96,7 @@ type Rdb struct {
 	Database string `json:"database"`
 	Sslmode  string `json:"sslmode"`
 	Secret   string `json:"secret"`
+	SecretKey   string `json:"secret_key"`
 }
 
 type HttpServer struct {
@@ -134,4 +135,5 @@ type Cache struct {
 	Port   string `json:"port"`
 	Db     int    `json:"db"`
 	Secret string `json:"secret"`
+	SecretKey   string `json:"secret_key"`
 }
