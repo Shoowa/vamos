@@ -109,3 +109,21 @@ func (sk *SkeletonKey) CreateCertPool(cfg *config.HttpServer) (*x509.CertPool, e
 	certPool.AppendCertsFromPEM(ca)
 	return certPool, nil
 }
+
+func (sk *SkeletonKey) ConfigureTLSwithCA(cfg *config.Config) (*tls.Config, error) {
+	clientCert, ccErr := sk.ReadTlsCertAndKey(cfg, cfg.HttpServer.KeyField, cfg.HttpServer.CertificateField)
+	if ccErr != nil {
+		return nil, ccErr
+	}
+
+	certPool, cpErr := sk.CreateCertPool(cfg.HttpServer)
+	if cpErr != nil {
+		return nil, cpErr
+	}
+
+	return &tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		Certificates: []tls.Certificate{*clientCert},
+		RootCAs: certPool,
+	}, nil
+}
