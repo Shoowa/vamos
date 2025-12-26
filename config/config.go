@@ -138,6 +138,7 @@ type Cache struct {
 	Host      string `json:"host"`
 	Port      string `json:"port"`
 	Db        int    `json:"db"`
+	User      string `json:"user"`
 	Secret    string `json:"secret"`
 	SecretKey string `json:"secret_key"`
 }

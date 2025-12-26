@@ -56,6 +56,7 @@
           "host": "localhost",
           "port": "6379",
           "db": 0,
+          "user": "default",
           "secret_key": "password",
           "secret": "dev-redis-test"
     }
