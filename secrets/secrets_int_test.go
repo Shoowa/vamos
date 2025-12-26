@@ -60,3 +60,15 @@ func Test_ReadIntermediateCA(t *testing.T) {
 	_, err := sk.ReadIntermediateCA(cfg.HttpServer)
 	Ok(t, err)
 }
+
+func Test_CreateCertPool(t *testing.T) {
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
+
+	cfg := config.Read()
+	sk := new(SkeletonKey)
+	sk.Create(cfg)
+
+	_, err := sk.CreateCertPool(cfg.HttpServer)
+	Ok(t, err)
+}
