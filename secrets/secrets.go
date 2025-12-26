@@ -3,6 +3,7 @@ package secrets
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 
@@ -96,4 +97,15 @@ func (sk *SkeletonKey) ReadIntermediateCA(cfg *config.HttpServer) ([]byte, error
 	}
 
 	return cert, nil
+}
+
+func (sk *SkeletonKey) CreateCertPool(cfg *config.HttpServer) (*x509.CertPool, error) {
+	ca, caErr := sk.ReadIntermediateCA(cfg)
+	if caErr != nil {
+		return nil, caErr
+	}
+
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(ca)
+	return certPool, nil
 }
