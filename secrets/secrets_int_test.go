@@ -26,10 +26,8 @@ func Test_PostgresPassword(t *testing.T) {
 	sk.Create(cfg)
 
 	pw, pwErr := sk.ReadPathAndKey(db.Secret, db.SecretKey)
-	if pwErr != nil {
-		t.Error(pwErr.Error())
-	}
 
+	Ok(t, pwErr)
 	Equals(t, PASSWORD, pw)
 }
 
@@ -42,10 +40,8 @@ func Test_ReadValueFromOpenbao(t *testing.T) {
 	sk.Create(cfg)
 
 	val, err := sk.ReadPathAndKey(REDIS_SECRET, cfg.Cache.SecretKey)
-	if err != nil {
-		t.Error(err.Error())
-	}
 
+	Ok(t, err)
 	Equals(t, REDIS_PW, val)
 }
 
