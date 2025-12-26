@@ -83,3 +83,17 @@ func (sk *SkeletonKey) ReadTlsCertAndKey(cfg *config.Config, keyField, certField
 
 	return &pair, nil
 }
+
+func (sk *SkeletonKey) ReadIntermediateCA(cfg *config.HttpServer) ([]byte, error) {
+	ca64, ca64Err := sk.ReadPathAndKey(cfg.SecretCA, cfg.SecretCAKey)
+	if ca64Err != nil {
+		return nil, ca64Err
+	}
+
+	cert, decodeCertErr := base64.StdEncoding.DecodeString(ca64)
+	if decodeCertErr != nil {
+		return nil, decodeCertErr
+	}
+
+	return cert, nil
+}
