@@ -48,3 +48,15 @@ func Test_ReadValueFromOpenbao(t *testing.T) {
 
 	Equals(t, REDIS_PW, val)
 }
+
+func Test_ReadIntermediateCA(t *testing.T) {
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
+
+	cfg := config.Read()
+	sk := new(SkeletonKey)
+	sk.Create(cfg)
+
+	_, err := sk.ReadIntermediateCA(cfg.HttpServer)
+	Ok(t, err)
+}
