@@ -100,16 +100,16 @@ type Rdb struct {
 }
 
 type HttpServer struct {
-	Port         string `json:"port"`
-	TimeoutRead  int    `json:"timeout_read"`
-	TimeoutWrite int    `json:"timeout_write"`
-	TimeoutIdle  int    `json:"timeout_idle"`
-	Certificate  string `json:"certificate"`
-	CertificateField  string `json:"certificate_field"`
-	Key          string `json:"key"`
-	KeyField	 string `json:"key_field"`
-	SecretCA     string `json:"secret_ca"`
-	SecretCAKey  string `json:"secret_ca_key"`
+	Port             string `json:"port"`
+	TimeoutRead      int    `json:"timeout_read"`
+	TimeoutWrite     int    `json:"timeout_write"`
+	TimeoutIdle      int    `json:"timeout_idle"`
+	Certificate      string `json:"certificate"`
+	CertificateField string `json:"certificate_field"`
+	Key              string `json:"key"`
+	KeyField         string `json:"key_field"`
+	SecretCA         string `json:"secret_ca"`
+	SecretCAKey      string `json:"secret_ca_key"`
 }
 
 type Health struct {
