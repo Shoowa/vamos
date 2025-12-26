@@ -28,6 +28,8 @@
     "httpserver": {
         "certificate": "dev-app-cert",
         "key": "dev-app-key",
+        "secret_ca": "intermediate-ca",
+        "secret_ca_key": "int_ca",
         "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,

@@ -106,6 +106,8 @@ type HttpServer struct {
 	TimeoutIdle  int    `json:"timeout_idle"`
 	Certificate  string `json:"certificate"`
 	Key          string `json:"key"`
+	SecretCA     string `json:"secret_ca"`
+	SecretCAKey  string `json:"secret_ca_key"`
 }
 
 type Health struct {
