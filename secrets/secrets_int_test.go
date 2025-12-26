@@ -72,3 +72,16 @@ func Test_CreateCertPool(t *testing.T) {
 	_, err := sk.CreateCertPool(cfg.HttpServer)
 	Ok(t, err)
 }
+
+func Test_CreateTLSwithCA(t *testing.T) {
+	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("OPENBAO_TOKEN", "token")
+
+	cfg := config.Read()
+	sk := new(SkeletonKey)
+	sk.Create(cfg)
+
+	tlsConfig, err := sk.ConfigureTLSwithCA(cfg)
+	Ok(t, err)
+	Equals(t, 1, len(tlsConfig.Certificates))
+}
