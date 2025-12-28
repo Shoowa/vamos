@@ -34,7 +34,7 @@ func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate) *
 		IdleTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutIdle),
 		BaseContext:  func(lstnr net.Listener) context.Context { return base },
 		TLSConfig: &tls.Config{
-			MinVersion:     tls.VersionTLS13,
+			MinVersion:   tls.VersionTLS13,
 			Certificates: []tls.Certificate{*cert},
 		},
 	}
