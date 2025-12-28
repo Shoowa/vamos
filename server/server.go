@@ -24,11 +24,12 @@ const GRACE_PERIOD = time.Second * 15
 // BaseContext, and will be shared across all inbound requests. The associated
 // cancelFunc will notify the HTTP Handlers to terminate active connections when
 // the server is ordered to halt.
-func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate) *http.Server {
+func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate, slogger *slog.Logger) *http.Server {
 	base, stop := context.WithCancel(context.Background())
 	s := &http.Server{
 		Addr:         ":" + cfg.HttpServer.Port,
 		Handler:      router,
+		ErrorLog:     slog.NewLogLogger(slogger.Handler(), slog.LevelError),
 		ReadTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutRead),
 		WriteTimeout: time.Second * time.Duration(cfg.HttpServer.TimeoutWrite),
 		IdleTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutIdle),
