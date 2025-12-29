@@ -26,10 +26,18 @@
         ]
     },
     "httpserver": {
-        "certificate": "dev-app-cert",
-        "certificate_field": "client_cert",
-        "key": "dev-app-key",
-        "key_field": "client_private_key",
+        "tls_server": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "cert",
+            "key_path": "dev-app-key",
+            "key_field": "private_key"
+        },
+        "tls_client": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "client_cert",
+            "key_path": "dev-app-key",
+            "key_field": "client_private_key"
+        },
         "secret_ca": "intermediate-ca",
         "secret_ca_key": "int_ca",
         "port": "8443",

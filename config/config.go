@@ -99,17 +99,22 @@ type Rdb struct {
 	SecretKey string `json:"secret_key"`
 }
 
+type TlsSecret struct {
+	CertPath string `json:"cert_path"`
+	CertField string `json:"cert_field"`
+	KeyPath string `json:"key_path"`
+	KeyField string `json:"key_field"`
+}
+
 type HttpServer struct {
 	Port             string `json:"port"`
 	TimeoutRead      int    `json:"timeout_read"`
 	TimeoutWrite     int    `json:"timeout_write"`
 	TimeoutIdle      int    `json:"timeout_idle"`
-	Certificate      string `json:"certificate"`
-	CertificateField string `json:"certificate_field"`
-	Key              string `json:"key"`
-	KeyField         string `json:"key_field"`
 	SecretCA         string `json:"secret_ca"`
 	SecretCAKey      string `json:"secret_ca_key"`
+	TlsServer *TlsSecret `json:"tls_server"`
+	TlsClient *TlsSecret `json:"tls_client"`
 }
 
 type Health struct {
