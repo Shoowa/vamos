@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	redis "github.com/redis/go-redis/v9"
 )
 
 const (
@@ -33,6 +34,7 @@ type Backbone struct {
 	Logger       *slog.Logger
 	Health       *Health
 	DbHandle     *pgxpool.Pool
+	Cache        *redis.Client
 	HeapSnapshot *bytes.Buffer
 }
 
@@ -62,6 +64,12 @@ func WithLogger(l *slog.Logger) Option {
 func WithDbHandle(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
 		b.DbHandle = dbHandle
+	}
+}
+
+func WithCache(client *redis.Client) Option {
+	return func(b *Backbone) {
+		b.Cache = client
 	}
 }
 
