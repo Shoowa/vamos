@@ -77,7 +77,7 @@ func Test_CreateTLSwithCA(t *testing.T) {
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 
-	tlsConfig, err := sk.ConfigureTLSwithCA(cfg)
+	tlsConfig, err := sk.ConfigureTLSwithCA(cfg.HttpServer)
 	Ok(t, err)
 	Equals(t, 1, len(tlsConfig.Certificates))
 }
