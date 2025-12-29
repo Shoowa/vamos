@@ -56,13 +56,13 @@ func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
 	return v, nil
 }
 
-func (sk *SkeletonKey) ReadTlsCertAndKey(cfg *config.Config, keyField, certField string) (*tls.Certificate, error) {
-	cert64, certErr := sk.ReadPathAndKey(cfg.HttpServer.Certificate, certField)
+func (sk *SkeletonKey) ReadTlsCertAndKey(tlsInfo *config.TlsSecret) (*tls.Certificate, error) {
+	cert64, certErr := sk.ReadPathAndKey(tlsInfo.CertPath, tlsInfo.CertField)
 	if certErr != nil {
 		return nil, certErr
 	}
 
-	key64, keyErr := sk.ReadPathAndKey(cfg.HttpServer.Key, keyField)
+	key64, keyErr := sk.ReadPathAndKey(tlsInfo.KeyPath, tlsInfo.KeyField)
 	if keyErr != nil {
 		return nil, keyErr
 	}
@@ -110,13 +110,13 @@ func (sk *SkeletonKey) CreateCertPool(cfg *config.HttpServer) (*x509.CertPool, e
 	return certPool, nil
 }
 
-func (sk *SkeletonKey) ConfigureTLSwithCA(cfg *config.Config) (*tls.Config, error) {
-	clientCert, ccErr := sk.ReadTlsCertAndKey(cfg, cfg.HttpServer.KeyField, cfg.HttpServer.CertificateField)
+func (sk *SkeletonKey) ConfigureTLSwithCA(cfg *config.HttpServer) (*tls.Config, error) {
+	clientCert, ccErr := sk.ReadTlsCertAndKey(cfg.TlsClient)
 	if ccErr != nil {
 		return nil, ccErr
 	}
 
-	certPool, cpErr := sk.CreateCertPool(cfg.HttpServer)
+	certPool, cpErr := sk.CreateCertPool(cfg)
 	if cpErr != nil {
 		return nil, cpErr
 	}
