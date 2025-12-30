@@ -42,15 +42,30 @@ _config_ directory. The file is concerned with the following:
                 "user": "tester",
                 "database": "test_data",
                 "sslmode": "disable",
+                "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
         ]
     },
     "httpserver": {
-        "port": "8080",
+        "tls_server": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "cert",
+            "key_path": "dev-app-key",
+            "key_field": "private_key"
+        },
+        "tls_client": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "client_cert",
+            "key_path": "dev-app-key",
+            "key_field": "client_private_key"
+        },
+        "secret_ca": "intermediate-ca",
+        "secret_ca_key": "int_ca",
+        "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,
-        "timeout_idle": 5
+        "timeout_idle": 60
     },
     "health": {
         "ping_db_timer": 60,
@@ -66,9 +81,19 @@ _config_ directory. The file is concerned with the following:
         "cpu": false,
         "lock": false,
         "process": false
-  }
+    },
+    "cache": {
+        "host": "localhost",
+        "port": "6379",
+        "db": 0,
+        "user": "default",
+        "secret_key": "password",
+        "secret": "dev-redis-test"
+    }
 }
 ```
+
+#### Sequence of Database List
 Notice _data.relational_ is an array. The sequence is preserved after the
 configuration is read. Accessing a database requires acknowledging its position
 in the array. In the example, the command to connect to a database includes a
@@ -86,6 +111,22 @@ func main() {
 	db1, _ := rdbms.ConnectDB(cfg, DB_FIRST)
 ```
 
+#### TLS Configuration
+Notice _httpserver.tls_server_ and _httpserver.tls_client_ represent different
+sets of certificates and keys. The former is for the Go application to establish
+TLS connections with clients, and the latter is for mutual TLS as a client
+inside a corporate network. The former will be used to create a X509 Certificate
+that will be included in the TLS configuration of _http.Server_. The latter can
+be used as a X509 Certificate in a _Redis_ client, etc.
+
+The field *httpserver.tls_server.cert_path* represents a HTTP endpoint offered
+by _OpenBao_, and *httpserver.tls_server.cert_field* represents a JSON key in
+the data read from _OpenBao_.
+
+The _SkeletonKey_ from the _Secrets_ package can easily read sensitive data from
+_OpenBao_ and transform it into a useful X509 certificate for any developer.
+
+#### Build
 After all that is defined, determine the version number of the application. This
 is a good opportunity to include a tool that reads the Git Log and interprets
 Conventional Commits to determine the version.
