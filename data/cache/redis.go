@@ -21,7 +21,7 @@ func readPassword(c *secrets.SkeletonKey, cfg *config.Cache) string {
 func configure(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Options, error) {
 	hostAndPort := fmt.Sprintf("%v:%v", cfg.Cache.Host, cfg.Cache.Port)
 
-	redisTLS, rtlsErr := sec.ConfigureTLSwithCA(cfg)
+	redisTLS, rtlsErr := sec.ConfigureTLSwithCA(cfg.HttpServer)
 	if rtlsErr != nil {
 		return nil, rtlsErr
 	}
