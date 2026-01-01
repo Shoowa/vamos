@@ -42,6 +42,7 @@ podman_create_vm:
 		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/app; \
 		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		${CREATE_CERT} -profile=client server_app.json | cfssljson -bare public/app_client; \
+		${CREATE_CERT} -profile=server server_db.json | cfssljson -bare public/db; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
@@ -66,6 +67,7 @@ podman_copy_from_host_to_vm:
 		${CREATE_CERT} -profile=server server_app.json | cfssljson -bare public/app; \
 		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		${CREATE_CERT} -profile=client server_app.json | cfssljson -bare public/app_client; \
+		${CREATE_CERT} -profile=server server_db.json | cfssljson -bare public/db; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
