@@ -65,6 +65,7 @@
           "port": "6379",
           "db": 0,
           "user": "default",
+          "sslmode": true,
           "secret_key": "password",
           "secret": "dev-redis-test"
     }

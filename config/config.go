@@ -144,6 +144,7 @@ type Cache struct {
 	Port      string `json:"port"`
 	Db        int    `json:"db"`
 	User      string `json:"user"`
+	Sslmode   bool   `json:"sslmode"`
 	Secret    string `json:"secret"`
 	SecretKey string `json:"secret_key"`
 }
