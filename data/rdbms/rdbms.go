@@ -20,10 +20,18 @@ func WhichDB(cfg *config.Config, dbPosition int) config.Rdb {
 	return cfg.Data.Relational[dbPosition]
 }
 
+func sslMode(flag bool) string {
+	if flag == true {
+		return "verify-full"
+	} else {
+		return "disable"
+	}
+}
+
 func Credentials(db config.Rdb) (string, error) {
 	credString := fmt.Sprintf(
 		"user=%v host=%v database=%v sslmode=%v",
-		db.User, db.Host, db.Database, db.Sslmode,
+		db.User, db.Host, db.Database, sslMode(db.Sslmode),
 	)
 	return credString, nil
 }
