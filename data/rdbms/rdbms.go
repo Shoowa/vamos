@@ -61,6 +61,24 @@ func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
 		return nil
 	}
 
+	if db.Sslmode == true {
+		// temporary SecretsReader creation that will die out of scope.
+		secReader := new(secrets.SkeletonKey)
+		secReader.Create(cfg)
+
+		// Read certificate, key, CA from Secrets storage.
+		tlsInfo, tlsErr := secReader.ConfigureTLSwithCA(cfg.HttpServer)
+		if tlsErr != nil {
+			panic(tlsErr.Error())
+		}
+
+		// Add expected hostname of Postgres server.
+		tlsInfo.ServerName = db.Host
+
+		// Configure connection pool with TLS.
+		pgxConfig.ConnConfig.TLSConfig = tlsInfo
+	}
+
 	return pgxConfig, nil
 }
 
