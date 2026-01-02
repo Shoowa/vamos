@@ -21,19 +21,23 @@ func readPassword(c *secrets.SkeletonKey, cfg *config.Cache) string {
 func configure(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Options, error) {
 	hostAndPort := fmt.Sprintf("%v:%v", cfg.Cache.Host, cfg.Cache.Port)
 
-	redisTLS, rtlsErr := sec.ConfigureTLSwithCA(cfg.HttpServer)
-	if rtlsErr != nil {
-		return nil, rtlsErr
-	}
-
-	return &redis.Options{
-		TLSConfig: redisTLS,
+	opts := &redis.Options{
 		DB:        cfg.Cache.Db,
 		Addr:      hostAndPort,
 		CredentialsProviderContext: func(ctx context.Context) (string, string, error) {
 			return cfg.Cache.User, readPassword(sec, cfg.Cache), nil
 		},
-	}, nil
+	}
+
+	if cfg.Cache.Sslmode == true {
+		redisTLS, rtlsErr := sec.ConfigureTLSwithCA(cfg.HttpServer)
+		if rtlsErr != nil {
+			return nil, rtlsErr
+		}
+		opts.TLSConfig = redisTLS
+	}
+
+	return opts, nil
 }
 
 func CreateClient(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Client, error) {
