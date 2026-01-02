@@ -94,7 +94,7 @@ type Rdb struct {
 	Port      string `json:"port"`
 	User      string `json:"user"`
 	Database  string `json:"database"`
-	Sslmode   string `json:"sslmode"`
+	Sslmode   bool   `json:"sslmode"`
 	Secret    string `json:"secret"`
 	SecretKey string `json:"secret_key"`
 }

@@ -19,7 +19,7 @@
                 "port": "5432",
                 "user": "tester",
                 "database": "test_data",
-                "sslmode": "disable",
+                "sslmode": false,
                 "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
