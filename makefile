@@ -43,6 +43,7 @@ podman_create_vm:
 		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		${CREATE_CERT} -profile=client server_app.json | cfssljson -bare public/app_client; \
 		${CREATE_CERT} -profile=server server_db.json | cfssljson -bare public/db; \
+		${CREATE_CERT} -profile=server server_openbao.json | cfssljson -bare public/openbao; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
@@ -68,6 +69,7 @@ podman_copy_from_host_to_vm:
 		${CREATE_CERT} -profile=server server_redis.json | cfssljson -bare public/redis; \
 		${CREATE_CERT} -profile=client server_app.json | cfssljson -bare public/app_client; \
 		${CREATE_CERT} -profile=server server_db.json | cfssljson -bare public/db; \
+		${CREATE_CERT} -profile=server server_openbao.json | cfssljson -bare public/openbao; \
 		mv public/*-key.pem private/ ; \
 		${SYSD_RELOAD}; sleep 2; \
 		systemctl --user enable ${DEV_TARGETS} --now"
