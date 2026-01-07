@@ -1,0 +1,19 @@
+{
+  "ui": false,
+
+  "api_addr":     "https://0.0.0.0:8233",
+
+  "listener": [
+    {
+      "tcp": {
+        "address":       "0.0.0.0:8233",
+        "tls_cert_file": "/pki/public/openbao.pem",
+        "tls_key_file":  "/pki/private/openbao-key.pem",
+        "tls_require_and_verify_client_cert": "true",
+        "tls_client_ca_file": "/pki/root/ca.pem",
+        "tls_min_version": "tls13",
+      }
+    }
+  ],
+
+}
