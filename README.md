@@ -14,9 +14,11 @@ _config_ directory. The file is concerned with the following:
 1. The location of the server guarding secrets.
 2. The location of a Postgres instance and its sensitive credential.
 3. Fake data to provide to Postgres for development & testing.
-4. Server details, e.g., port, timeouts.
-5. Frequency of healtchecks.
+4. Server details, e.g., port, timeouts, TLS as both client and server.
+5. Frequency of healthchecks.
 6. Logging level.
+7. Configuring of metrics.
+8. Location of a Redis server, its sensitive credentials, & TLS config.
 
 ```json
 {
@@ -29,9 +31,16 @@ _config_ directory. The file is concerned with the following:
     },
     "secrets": {
         "openbao": {
-            "scheme": "http",
+            "tls_client": {
+                "ca_path": "/path/to/intermediate_ca.pem",
+                "cert_path": "/path/to/cert.pem",
+                "cert_field": "",
+                "key_path": "/path/to/key.pem",
+                "key_field": ""
+            },
+            "scheme": "https",
             "host": "localhost",
-            "port": "8200"
+            "port": "8233"
         }
     },
     "data": {
@@ -41,7 +50,7 @@ _config_ directory. The file is concerned with the following:
                 "port": "5432",
                 "user": "tester",
                 "database": "test_data",
-                "sslmode": "disable",
+                "sslmode": false,
                 "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
@@ -87,6 +96,7 @@ _config_ directory. The file is concerned with the following:
         "port": "6379",
         "db": 0,
         "user": "default",
+        "sslmode": true,
         "secret_key": "password",
         "secret": "dev-redis-test"
     }
@@ -111,13 +121,14 @@ func main() {
 	db1, _ := rdbms.ConnectDB(cfg, DB_FIRST)
 ```
 
-#### TLS Configuration
+### TLS Configuration
 Notice _httpserver.tls_server_ and _httpserver.tls_client_ represent different
-sets of certificates and keys. The former is for the Go application to establish
-TLS connections with clients, and the latter is for mutual TLS as a client
-inside a corporate network. The former will be used to create a X509 Certificate
-that will be included in the TLS configuration of _http.Server_. The latter can
-be used as a X509 Certificate in a _Redis_ client, etc.
+sets of certificates and keys in a _TlsSecret_ struct. The former is for the Go
+application to establish TLS connections with clients, and the latter is for
+mutual TLS as a client inside a corporate network. The former will be used to
+create a X509 Certificate that will be included in the TLS configuration of
+_http.Server_. The latter can be used as a X509 Certificate in a _Redis_ client,
+etc.
 
 The field *httpserver.tls_server.cert_path* represents a HTTP endpoint offered
 by _OpenBao_, and *httpserver.tls_server.cert_field* represents a JSON key in
@@ -125,6 +136,23 @@ the data read from _OpenBao_.
 
 The _SkeletonKey_ from the _Secrets_ package can easily read sensitive data from
 _OpenBao_ and transform it into a useful X509 certificate for any developer.
+
+#### Overloaded TlsSecret struct
+A notable problem with the current usage of the _TlsSecret_ struct is that I'm
+forcing it to perform double-duty. When configuring the _Openbao_ client, the
+_TlsSecret_ field named *cert_path* is simply a file path, so that the client
+can read a local _.pem_ file to build a TLS connection to the secrets storage.
+When configuring other clients to communicate with _Postgres_ and _Redis_, then
+the fields represent HTTP endpoints hosted on the Openbao server. So an
+executable reads locally hosted ._pem_ files to build a secure connection to the
+Openbao server, then reads subsequent secrets from Openbao to build secure
+connections to other servers. I should probably reform the _httpServer_ struct
+and the _TlsSecret_ struct.
+
+### Local dev Openbao NOT rotating certs
+The local dev Openbao isn't rotating X509 certificates. I should probably employ
+that feature, but currently I simply write certificates into secrets storage.
+
 
 #### Build
 After all that is defined, determine the version number of the application. This
@@ -147,6 +175,12 @@ This is for MacOS. You will need two things: _Podman_ and _Golang_.
 ~/vamos $ make podman_create_vm
 ~/vamos $ podman ps -a
 ```
+You will receive three things in this dev env.
+1. Openbao to hold passwords and certificates. This can be improved to handle
+   cert-rotation.
+2. Postgres to permanently hold data.
+3. Redis to temporarily hold data.
+
 You will receive a new instance of Postgres with a user and database, and an
 instance of Openbao with a loaded password kept at _dev-postgres-test_. That
 path matches the config field _data.relational.[0].secret_ in the *_example/*.
@@ -433,6 +467,7 @@ func main() {
 	backbone := router.NewBackbone(
 		router.WithLogger(srvLogger),
 		router.WithDbHandle(db1),
+		router.WithCache(redis),
 	)
 }
 ```
@@ -447,6 +482,12 @@ package router
 func WithDbHandle(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
 		b.DbHandle = dbHandle
+	}
+}
+
+func WithCache(client *redis.Client) Option {
+	return func(b *Backbone) {
+		b.Cache = client
 	}
 }
 ```
@@ -881,6 +922,29 @@ reads a _boolean_. The real work of evaluating any resource is held in a
 discrete function, and there can be a few or many. They all run in the
 background. They each update a particular health status on their own time. And
 the configuration of time is determined by the operator of this application.
+
+
+## Cache
+Access the Redis client in the Backbone struct when constructing HTTP Handlers.
+```go
+package router
+// abbreviated for clarity...
+
+func (b *Deps) writeCache(w http.ResponseWriter, req *http.Request) error {
+    stuff := req.PathValue("item") // You'll probably use JSON instead.
+
+	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
+	defer cancel()
+
+	cacheErr := d.Cache.Set(timer, "KEY", stuff, 120*time.Second).Err()
+    if cacheErr != nil {
+        return cacheErr
+    }
+
+	w.Write([]byte("All good")) // Don't really do this in production.
+    return nil
+}
+```
 
 
 ## Build

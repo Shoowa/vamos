@@ -8,9 +8,16 @@
     },
     "secrets": {
         "openbao": {
-            "scheme": "http",
+            "tls_client": {
+                "ca_path": "/path/to/intermediate_ca.pem",
+                "cert_path": "/path/to/cert.pem",
+                "cert_field": "",
+                "key_path": "/path/to/key.pem",
+                "key_field": ""
+            },
+            "scheme": "https",
             "host": "localhost",
-            "port": "8200"
+            "port": "8233"
         }
     },
     "data": {
@@ -20,16 +27,31 @@
                 "port": "5432",
                 "user": "tester",
                 "database": "test_data",
-                "sslmode": "disable",
+                "sslmode": false,
+                "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
         ]
     },
     "httpserver": {
-        "port": "8080",
+        "tls_server": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "cert",
+            "key_path": "dev-app-key",
+            "key_field": "private_key"
+        },
+        "tls_client": {
+            "cert_path": "dev-app-cert",
+            "cert_field": "client_cert",
+            "key_path": "dev-app-key",
+            "key_field": "client_private_key"
+        },
+        "secret_ca": "intermediate-ca",
+        "secret_ca_key": "int_ca",
+        "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,
-        "timeout_idle": 5
+        "timeout_idle": 60
     },
     "health": {
         "ping_db_timer": 60,
@@ -45,5 +67,14 @@
         "cpu": false,
         "lock": false,
         "process": false
-  }
+    },
+    "cache": {
+          "host": "localhost",
+          "port": "6379",
+          "db": 0,
+          "user": "default",
+          "sslmode": true,
+          "secret_key": "password",
+          "secret": "dev-redis-test"
+    }
 }
