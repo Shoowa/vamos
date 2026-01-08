@@ -7,9 +7,16 @@
     },
     "secrets": {
         "openbao": {
-            "scheme": "http",
+            "tls_client": {
+                "ca_path": "/path/to/intermediate_ca.pem",
+                "cert_path": "/path/to/cert.pem",
+                "cert_field": "",
+                "key_path": "/path/to/key.pem",
+                "key_field": ""
+            },
+            "scheme": "https",
             "host": "localhost",
-            "port": "8200"
+            "port": "8233"
         }
     },
     "data": {

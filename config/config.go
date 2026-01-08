@@ -72,6 +72,7 @@ type Openbao struct {
 	Scheme string `json:"scheme"`
 	Host   string `json:"host"`
 	Port   string `json:"port"`
+	TlsClient    *TlsSecret `json:"tls_client"`
 }
 
 func (o *Openbao) ReadConfig() string {
@@ -100,6 +101,7 @@ type Rdb struct {
 }
 
 type TlsSecret struct {
+	CaPath string `json:"ca_path"`
 	CertPath  string `json:"cert_path"`
 	CertField string `json:"cert_field"`
 	KeyPath   string `json:"key_path"`
