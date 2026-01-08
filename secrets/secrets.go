@@ -30,6 +30,17 @@ func readConfig(cfg *config.Config) *openbao.Config {
 	url := cfg.Secrets.Openbao.ReadConfig()
 	clientConfig := openbao.DefaultConfig()
 	clientConfig.Address = url
+
+	// If the config file possesses an entry for a X509 certificate in the OpenBao
+	// portion, then configure the OpenBao client for TLS.
+	if cfg.Secrets.Openbao.TlsClient.CertPath != "" {
+		tls := openbao.TLSConfig{}
+		tls.ClientCert = cfg.Secrets.Openbao.TlsClient.CertPath
+		tls.ClientKey = cfg.Secrets.Openbao.TlsClient.KeyPath
+		tls.CACert = cfg.Secrets.Openbao.TlsClient.CaPath
+		tls.Insecure = false
+		clientConfig.ConfigureTLS(&tls)
+	}
 	return clientConfig
 }
 
