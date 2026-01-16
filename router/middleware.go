@@ -34,6 +34,7 @@ func NewBundle(logger *slog.Logger, router *http.ServeMux) *Bundle {
 
 func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	metrics.HttpRequestsGauge.Inc()
+	defer metrics.HttpRequestsGauge.Dec()
 	b.Logger.Info(
 		"Inbound",
 		"method", req.Method,
@@ -47,7 +48,6 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	b.Router.ServeHTTP(recorder, req)
-	metrics.HttpRequestsGauge.Dec()
 
 	if recorder.statusCode == 404 {
 		metrics.HttpRequestCounter.WithLabelValues("404", "invalid path", req.Method).Inc()
