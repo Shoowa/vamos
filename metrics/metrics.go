@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// listOfMetrics returns gauges and counters defined in the library.
 func listOfMetrics() []prometheus.Collector {
 	return []prometheus.Collector{
 		HttpRequestCounter,
@@ -111,6 +112,7 @@ func connectionsGauge() prometheus.Gauge {
 
 var HttpRequestsGauge = connectionsGauge()
 
+// CreateCounter registers a custom counter.
 func CreateCounter(name string, help string) prometheus.Counter {
 	opts := prometheus.CounterOpts{
 		Name: name,
@@ -122,6 +124,7 @@ func CreateCounter(name string, help string) prometheus.Counter {
 	return counter
 }
 
+// CreateGauge registers a custom gauge.
 func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
 	opts := prometheus.GaugeOpts{
 		Namespace: ns,
@@ -135,6 +138,7 @@ func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
 	return gauge
 }
 
+// CreateHistogram registers a custom histogram.
 func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Histogram {
 	opts := prometheus.HistogramOpts{
 		Namespace: ns,
@@ -149,6 +153,7 @@ func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Hi
 	return histogram
 }
 
+// CreateSummary registers a custom summary.
 func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheus.Summary {
 	opts := prometheus.SummaryOpts{
 		Namespace:  ns,
@@ -163,11 +168,14 @@ func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheu
 	return sum
 }
 
+// HistogramWithTimer bundles a graph with a convenient timer.
 type HistogramWithTimer struct {
 	Graph prometheus.Histogram
 	Timer func() *prometheus.Timer
 }
 
+// CreateHistogramWithTimer registers a histogram and bundles it with a timer
+// that can be convenientlay invoked by a developer.
 func CreateHistogramWithTimer(ns, ss, name, help string, buckets []float64) *HistogramWithTimer {
 	graph := CreateHistogram(ns, ss, name, help, buckets)
 	timer := func() *prometheus.Timer { return prometheus.NewTimer(graph) }

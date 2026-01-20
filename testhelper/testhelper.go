@@ -55,6 +55,8 @@ func Equals(tb testing.TB, exp, act any) {
 	}
 }
 
+// Change_to_project_root repositions a test executable's starting point so it
+// can find the config file.
 func Change_to_project_root() {
 	dirName := os.Getenv("PROJECT_NAME")
 	wd, _ := os.Getwd()
@@ -67,6 +69,7 @@ func Change_to_project_root() {
 	}
 }
 
+// CreateTestTable writes data into a development Postgres server.
 func CreateTestTable(timer context.Context) error {
 	cfg := config.Read()
 	dbConfig := rdbms.WhichDB(cfg, cfg.Test.DbPosition)
@@ -106,6 +109,7 @@ type testServer struct {
 	*httptest.Server
 }
 
+// CreateTestServer conveniently creates a configured server for testing routes.
 func CreateTestServer(t *testing.T) *testServer {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)
@@ -140,6 +144,8 @@ func CreateTestServer(t *testing.T) *testServer {
 	return &testServer{s}
 }
 
+// Get is a method of the testServer that conveniently creates a client and
+// reads a response and reports the HTTP status, Headers, and body.
 func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string) {
 	client := tsrv.Client()
 	r, rErr := client.Get(tsrv.URL + path)
@@ -157,6 +163,10 @@ func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string
 	return r.StatusCode, r.Header, string(body)
 }
 
+// CreateTestServerExtDeps conveniently creates a configured server in a
+// downstream test executable. This is one of the two reasons the Gatherer
+// interface was created. To easily test routes with dependencies in a
+// downstream executable.
 func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 	cfg := config.Read()
 	logger := slog.New(slog.DiscardHandler)

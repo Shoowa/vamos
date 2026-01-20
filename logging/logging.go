@@ -20,6 +20,9 @@ func configure(cfg *config.Config) *slog.HandlerOptions {
 	return opts
 }
 
+// CreateLogger provides a structured JSON logger configured with a few fields
+// displaying the version of the programming language, and a version of the
+// application. It emits either debug or warn data.
 func CreateLogger(cfg *config.Config) *slog.Logger {
 	goVersion := slog.String("lang", runtime.Version())
 	appVersion := slog.String("app", config.AppVersion)

@@ -16,6 +16,14 @@ const (
 	StatusClientClosed = 499
 )
 
+// Gatherer is an ugly, contrived interface that this library's configured
+// router expects. So it is adopted by the native Backbone struct. It can also
+// be adopted by a struct that wraps around Backbone in a downstream executable.
+// Any Gatherer can be passed to the function that creates a new router. This
+// enabled creating a custom test server in the library that downstream
+// developers can easily use. Using an interface allows me to pass a
+// dependency-wrapper around both a library and a downstream executable, and for
+// production and testing.
 type Gatherer interface {
 	GetLogger() *slog.Logger
 	GetBackbone() *Backbone
@@ -24,12 +32,14 @@ type Gatherer interface {
 	eHand(errHandler) http.HandlerFunc
 }
 
+// Similar to a standard http.Handler, but returns an error.
 type errHandler func(http.ResponseWriter, *http.Request) error
 
+// Option allows us to selectively add items to the Backbone struct.
 type Option func(*Backbone)
 
-// Backbone holds data dependencies. The field FirstDB can hold a sqlC generated
-// Queries struct, but we can't define that type.
+// Backbone holds dependencies that can eventually be accessed by a
+// http.Handler.
 type Backbone struct {
 	Logger       *slog.Logger
 	Health       *Health
@@ -38,8 +48,9 @@ type Backbone struct {
 	HeapSnapshot *bytes.Buffer
 }
 
-// The Options pattern is used to configure the struct, because the struct
-// itself will be defined differently depending on a build tag.
+// NewBackbone employs the Options pattern to selectively configure the Backbone
+// struct. It also adds a Health record and initializes it. It also adds a
+// buffer for receiving runtime profile data.
 func NewBackbone(options ...Option) *Backbone {
 	b := new(Backbone)
 	for _, opt := range options {
@@ -55,24 +66,30 @@ func NewBackbone(options ...Option) *Backbone {
 	return b
 }
 
+// WithLogger selectively adds a structured logger to the Backbone struct.
 func WithLogger(l *slog.Logger) Option {
 	return func(b *Backbone) {
 		b.Logger = l
 	}
 }
 
+// WithDbHandle selectively adds a Postgres connection pool to the Backbone
+// struct.
 func WithDbHandle(dbHandle *pgxpool.Pool) Option {
 	return func(b *Backbone) {
 		b.DbHandle = dbHandle
 	}
 }
 
+// WithCache selectively adds a Redis client to the Backbone struct.
 func WithCache(client *redis.Client) Option {
 	return func(b *Backbone) {
 		b.Cache = client
 	}
 }
 
+// eHand wraps around a standard http.Handler, and reads an error, then produces
+// a HTTP response appropriate for common errors.
 func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		err := f(w, req)
@@ -93,16 +110,25 @@ func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
 	}
 }
 
+// GetLogger is a convoluted method on the Backbone struct that fulfills the
+// Gatherer interface.
 func (b *Backbone) GetLogger() *slog.Logger {
 	return b.Logger
 }
 
+// GetBackbone is an awkward, convoluted method on the Backbone struct to summon
+// itself. This awkwardly satisfies the Gatherer interface, and using an
+// interface allows me to pass a dependency-wrapper around both a library and a
+// downstream executable, and for production and for testing.
 func (b *Backbone) GetBackbone() *Backbone {
 	return b
 }
 
+// AddBackbone is an awkward method to satisfy the Gatherer interface.
 func (b *Backbone) AddBackbone(*Backbone) {}
 
+// GetEndpoints is a convenient method to add a list of HTTP methods and
+// http.Handlers to a router.
 func (b *Backbone) GetEndpoints() []Endpoint {
 	return nil
 }

@@ -19,11 +19,15 @@ import (
 const GRACE_PERIOD = time.Second * 15
 
 // NewServer creates a custom http.Server struct. And transfers dependencies in
-// Backbone to the routing layer, so that HTTP Handlers can access the databases
-// and cache. A cancel-able parent context is supplied to the http.Server in
-// BaseContext, and will be shared across all inbound requests. The associated
-// cancelFunc will notify the HTTP Handlers to terminate active connections when
-// the server is ordered to halt.
+// Backbone to the routing layer, so that HTTP Handlers can access a logger, a
+// database, & a cache.
+//
+// A cancel-able parent context is supplied to the http.Server in BaseContext,
+// and will be shared across all inbound requests.  The associated cancelFunc
+// will notify the HTTP Handlers to terminate active connections when the server
+// is ordered to halt.
+//
+// The server receives a x509 certificate and adopts TLS 1.3
 func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate, slogger *slog.Logger) *http.Server {
 	base, stop := context.WithCancel(context.Background())
 	s := &http.Server{
@@ -64,7 +68,7 @@ func gracefulShutdown(s *http.Server) error {
 	return nil
 }
 
-// CatchSigTerm creates a buffered message queue awaiting an OS signal. The Main
+// catchSigTerm creates a buffered message queue awaiting an OS signal. The Main
 // routine will block while the channel awaits the signal. After receiving a
 // signal, the Main routine will shutdown the server.
 func catchSigTerm() {
@@ -73,6 +77,9 @@ func catchSigTerm() {
 	<-sigChan
 }
 
+// Start launches the webserver in a go routine, then awaits a signal to
+// gracefully terminate the webserver. When the webserver fails to gracefully
+// stop, then it will be killed.
 func Start(l *slog.Logger, s *http.Server) {
 	go gracefulIgnition(s)
 	l.Info("HTTP Server activated")

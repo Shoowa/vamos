@@ -16,6 +16,8 @@ const (
 	TIMEOUT_PING = time.Second * 1
 )
 
+// WhichDB reads from a list of databases in the Config struct. A developer must
+// select an index in that array.
 func WhichDB(cfg *config.Config, dbPosition int) config.Rdb {
 	return cfg.Data.Relational[dbPosition]
 }
@@ -28,6 +30,7 @@ func sslMode(flag bool) string {
 	}
 }
 
+// Credentials conveniently assembles a string for the Postgres client.
 func Credentials(db config.Rdb) (string, error) {
 	credString := fmt.Sprintf(
 		"user=%v host=%v database=%v sslmode=%v",
@@ -36,6 +39,8 @@ func Credentials(db config.Rdb) (string, error) {
 	return credString, nil
 }
 
+// configure chooses a database from an array in the Config file, and then adds
+// the capability to read a password from secret storage any time, and adds TLS.
 func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
 	db := WhichDB(cfg, dbPosition)
 
@@ -82,6 +87,7 @@ func configure(cfg *config.Config, dbPosition int) (*pgxpool.Config, error) {
 	return pgxConfig, nil
 }
 
+// ConnectDB configures and creates a Postgres connection pool.
 func ConnectDB(cfg *config.Config, dbPosition int) (*pgxpool.Pool, error) {
 	dbConfig, dbConfigErr := configure(cfg, dbPosition)
 	if dbConfigErr != nil {

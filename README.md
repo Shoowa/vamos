@@ -1,4 +1,6 @@
 # ¡Vamos!
+[![Go Reference](https://pkg.go.dev/badge/github.com/Shoowa/vamos.svg)](https://pkg.go.dev/github.com/Shoowa/vamos)
+
 A library for a Golang microservice. It is configured with logging, metrics,
 health checks, & profiling. It is also integrated with secrets storage and a
 relational database.

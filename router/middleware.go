@@ -13,6 +13,9 @@ type statusRecorder struct {
 	statusCode int
 }
 
+// WriteHeader conforms to an interface so that a library struct can be inserted
+// into the standatd Router, copy the served HTTP status code, then read the
+// copied status code after a response is served.
 func (recorder *statusRecorder) WriteHeader(code int) {
 	recorder.statusCode = code
 	recorder.ResponseWriter.WriteHeader(code)
@@ -25,6 +28,9 @@ type Bundle struct {
 	Router *http.ServeMux
 }
 
+// NewBundle creates a custom struct that holds the standard router and a custom
+// logger. The logger will be used in a middleware to record all incoming
+// requests.
 func NewBundle(logger *slog.Logger, router *http.ServeMux) *Bundle {
 	return &Bundle{
 		Logger: logger,
@@ -32,6 +38,9 @@ func NewBundle(logger *slog.Logger, router *http.ServeMux) *Bundle {
 	}
 }
 
+// ServeHTTP method on the Bundle struct conforms to the Handler interface, and
+// is added to the router as middleware that can record every incoming HTTP
+// request, and record the number of active TCP connections in a gauge.
 func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	metrics.HttpRequestsGauge.Inc()
 	defer metrics.HttpRequestsGauge.Dec()
@@ -57,7 +66,10 @@ func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Endpoint is a struct that can be used to create a menu of routes.
+// Endpoint is a custom struct that can be used to create a menu of routes.
+// Ideally, viewing a populated Endpoint in a file is easy on the eyes during
+// code review. This type is essential to use the Bundle struct's AddRoutes
+// method.
 type Endpoint struct {
 	VerbAndPath string
 	Handler     errHandler

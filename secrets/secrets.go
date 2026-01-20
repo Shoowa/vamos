@@ -12,10 +12,15 @@ import (
 	"github.com/Shoowa/vamos/config"
 )
 
+// SkeletonKey wrap around an Openbao client. Perhaps it can wrap around other
+// clients that read different storage.
 type SkeletonKey struct {
 	Openbao *openbao.Client
 }
 
+// Create is a method of the SkeletonKey. It is hardcoded for the Openbao
+// client. It basically adds a token to an Openbao client, and adds the client
+// to the SkeletonKey.
 func (sk *SkeletonKey) Create(cfg *config.Config) {
 	cfg.Secrets.Openbao.ReadToken()
 	clientConfig := readConfig(cfg)
@@ -54,6 +59,7 @@ func buildClient(obCfg *openbao.Config, token string) (*openbao.Client, error) {
 	return client, nil
 }
 
+// ReadPathAndKey expects an Openbao endpoint, and a JSON key.
 func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
 	secret, secretErr := sk.Openbao.KVv2("secret").Get(context.Background(), secretPath)
 	if secretErr != nil {
@@ -67,6 +73,9 @@ func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
 	return v, nil
 }
 
+// ReadTlsCertAndKey expects a custom struct named TlsSecret in the Config file.
+// It will assemble a x509 certificate and key that is stored in Openbao as a
+// base64 values.
 func (sk *SkeletonKey) ReadTlsCertAndKey(tlsInfo *config.TlsSecret) (*tls.Certificate, error) {
 	cert64, certErr := sk.ReadPathAndKey(tlsInfo.CertPath, tlsInfo.CertField)
 	if certErr != nil {
@@ -96,6 +105,8 @@ func (sk *SkeletonKey) ReadTlsCertAndKey(tlsInfo *config.TlsSecret) (*tls.Certif
 	return &pair, nil
 }
 
+// ReadIntermediateCA expects a custom struct named HttpServer in the Config
+// file. It will read a base64 encoded value from Openbao, and return bytes.
 func (sk *SkeletonKey) ReadIntermediateCA(cfg *config.HttpServer) ([]byte, error) {
 	ca64, ca64Err := sk.ReadPathAndKey(cfg.SecretCA, cfg.SecretCAKey)
 	if ca64Err != nil {
@@ -110,6 +121,9 @@ func (sk *SkeletonKey) ReadIntermediateCA(cfg *config.HttpServer) ([]byte, error
 	return cert, nil
 }
 
+// CreateCertPool expects a custom struct named HttpServer in the Config file.
+// It will read a base64 encoded value from Openbao, then use that certificate
+// to configure a certPool.
 func (sk *SkeletonKey) CreateCertPool(cfg *config.HttpServer) (*x509.CertPool, error) {
 	ca, caErr := sk.ReadIntermediateCA(cfg)
 	if caErr != nil {
@@ -121,6 +135,8 @@ func (sk *SkeletonKey) CreateCertPool(cfg *config.HttpServer) (*x509.CertPool, e
 	return certPool, nil
 }
 
+// ConfigureTLSwithCA expects a custom struct named HttpServer in the Config
+// file. It will assemble a tls.Config with a CA, cert, and TLS 1.3
 func (sk *SkeletonKey) ConfigureTLSwithCA(cfg *config.HttpServer) (*tls.Config, error) {
 	clientCert, ccErr := sk.ReadTlsCertAndKey(cfg.TlsClient)
 	if ccErr != nil {

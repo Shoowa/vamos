@@ -22,8 +22,8 @@ func configure(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Options, er
 	hostAndPort := fmt.Sprintf("%v:%v", cfg.Cache.Host, cfg.Cache.Port)
 
 	opts := &redis.Options{
-		DB:        cfg.Cache.Db,
-		Addr:      hostAndPort,
+		DB:   cfg.Cache.Db,
+		Addr: hostAndPort,
 		CredentialsProviderContext: func(ctx context.Context) (string, string, error) {
 			return cfg.Cache.User, readPassword(sec, cfg.Cache), nil
 		},
@@ -40,6 +40,8 @@ func configure(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Options, er
 	return opts, nil
 }
 
+// CreateClient provides a Redis client configured with TLS, and an ability to
+// retrieve a password at any time from the secrets storage.
 func CreateClient(cfg *config.Config, sec *secrets.SkeletonKey) (*redis.Client, error) {
 	opts, confErr := configure(cfg, sec)
 	if confErr != nil {

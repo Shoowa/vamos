@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// AppVersion can be defined during the build command. It will appear in logs.
 var AppVersion string
 
 // Read from either the dev or prod file.
@@ -47,6 +48,8 @@ func Read() *Config {
 	return &config
 }
 
+// Config holds various smaller structs needed to define desired behavior in the
+// application and various dependencies.
 type Config struct {
 	Logger     *Logger     `json:"logger"`
 	Version    string      `json:"version"`
@@ -59,22 +62,32 @@ type Config struct {
 	Cache      *Cache      `json:"cache"`
 }
 
+// Logger expects debug to be enabled or disabled.
 type Logger struct {
+	// Value can be "debug" or nothing. When anything other than "debug", then
+	// the logger will select WARN as the log level.
 	Level string `json:"level"`
 }
 
+// Secrets is currently oriented toward Openbao.
 type Secrets struct {
+	// An Openbao struct containing a TlsSecret struct.
 	Openbao Openbao `json:"openbao"`
 }
 
+// Openbao struct expects an OPENBAO_TOKEN value, a site, and TLS config.
 type Openbao struct {
+	// Token can obtain a value by invoking the ReadToken method.
 	Token  string `json:"token"`
 	Scheme string `json:"scheme"`
 	Host   string `json:"host"`
 	Port   string `json:"port"`
-	TlsClient    *TlsSecret `json:"tls_client"`
+	// TlsSecret expects local file paths when used inside the Openbao struct.
+	TlsClient *TlsSecret `json:"tls_client"`
 }
 
+// ReadConfig is the rare method on a struct in this configuration file. It
+// simply assembles a string needed by the client to contact a server.
 func (o *Openbao) ReadConfig() string {
 	return fmt.Sprintf(
 		"%v://%v:%v",
@@ -82,71 +95,140 @@ func (o *Openbao) ReadConfig() string {
 	)
 }
 
+// ReadToken is the rare method on a struct in this configuration file. It reads
+// an environ variable named OPENBAO_TOKEN.
 func (o *Openbao) ReadToken() {
 	o.Token = os.Getenv("OPENBAO_TOKEN")
 }
 
+// Data holds a list of Rdb structs.
 type Data struct {
 	Relational []Rdb `json:"relational"`
 }
 
+// Rdb represents a Postgres connection.
 type Rdb struct {
-	Host      string `json:"host"`
-	Port      string `json:"port"`
-	User      string `json:"user"`
-	Database  string `json:"database"`
-	Sslmode   bool   `json:"sslmode"`
-	Secret    string `json:"secret"`
+	Host string `json:"host"`
+	Port string `json:"port"`
+	User string `json:"user"`
+	// Database represents one of the many "databases" residing in a Postgres
+	// server. Their jargon is unintuitive.
+	Database string `json:"database"`
+	// Sslmode toggles TLS connections.
+	Sslmode bool `json:"sslmode"`
+	// Secret is an Openbao HTTP endpoint.
+	Secret string `json:"secret"`
+	// SecretKey is an Openbao JSON data field returned from the endpoint.
 	SecretKey string `json:"secret_key"`
 }
 
+// TlsSecret can be used by the application either as a server or a client for
+// mutual TLS inside the same network. The fields often represent HTTP endpoints
+// on an Openbao server, and the subsequent JSON key in the returned data. The
+// Openbao client relies on the paths in these fields to read CAs, certs, & keys
+// hidden in an Openbao server.
+//
+// This struct is also used to represent local file paths when configuring an
+// Openbao client. I overloaded this struct. It can represent either an Openbao
+// HTTP endpoint or a local file path.
+//
+// First, an Openbao client is configured with a local CA, cert, & key. Second,
+// the application uses the Openbao client to contact the Openbao server. The
+// server stores other CAs, certs, & keys that can be read with the SkeletonKey.
+// Third, other clients such as the Redis client and the Postgres client use
+// those CAs, certs, & keys hidden in Openbao. Then those clients open secure
+// connections to those databases.
 type TlsSecret struct {
+	// CaPath is where to find an intermediate Certificate Authority.
 	CaPath string `json:"ca_path"`
-	CertPath  string `json:"cert_path"`
+	// CertPath is where to find a x509 certificate.
+	CertPath string `json:"cert_path"`
+	// CertField is where to find a x509 certificate when reading from an
+	// Openbao server.
 	CertField string `json:"cert_field"`
-	KeyPath   string `json:"key_path"`
-	KeyField  string `json:"key_field"`
+	// KeyPath is where to find a x509 key.
+	KeyPath string `json:"key_path"`
+	// KeyField is where to find a x509 key when reading from an Openbao server.
+	KeyField string `json:"key_field"`
 }
 
+// HttpServer expects a CA, x509 cert, & key as a server. And a x509 cert & key
+// as a client for an internal network.
 type HttpServer struct {
-	Port         string     `json:"port"`
-	TimeoutRead  int        `json:"timeout_read"`
-	TimeoutWrite int        `json:"timeout_write"`
-	TimeoutIdle  int        `json:"timeout_idle"`
-	SecretCA     string     `json:"secret_ca"`
-	SecretCAKey  string     `json:"secret_ca_key"`
-	TlsServer    *TlsSecret `json:"tls_server"`
-	TlsClient    *TlsSecret `json:"tls_client"`
+	Port string `json:"port"`
+	// TimeoutRead is the amount of seconds allowed to read an entire request,
+	// including the body.
+	TimeoutRead int `json:"timeout_read"`
+	// TimeoutWrite is the amount of seconds allowed to write an entire
+	// response, beginning from a TLS handshake to Time To First Byte.
+	TimeoutWrite int `json:"timeout_write"`
+	// TimeoutIdle is the amount of seconds to hold an idle connection.
+	TimeoutIdle int `json:"timeout_idle"`
+	// SecretCA is an HTTP endpoint on an Openbao server holding an intermediate
+	// CA.
+	SecretCA string `json:"secret_ca"`
+	// SecretCAKey is a JSON key in Openbao data holding the intermediate CA.
+	SecretCAKey string `json:"secret_ca_key"`
+	// TlsServer is configuration for the application to become a secure server.
+	TlsServer *TlsSecret `json:"tls_server"`
+	// TlsClient is configuration for the application to become a secure client.
+	TlsClient *TlsSecret `json:"tls_client"`
 }
 
+// Health configures the thresholds for various healthchecks.
 type Health struct {
-	PingDbTimer     int    `json:"ping_db_timer"`
-	HeapTimer       int    `json:"heap_timer"`
-	HeapSize        uint64 `json:"heap_size"`
-	RoutTimer       int    `json:"rout_timer"`
-	RoutinesPerCore int    `json:"routines_per_core"`
+	// PingDbTimer is the amount of seconds between each Postgres ping.
+	PingDbTimer int `json:"ping_db_timer"`
+	// HeapTimer is the amount of seconds between each evaluation of heap size.
+	HeapTimer int `json:"heap_timer"`
+	// HeapSize is the desired maximum amount of megabytes.
+	HeapSize uint64 `json:"heap_size"`
+	// RoutTimer is the amount of seconds between each measurement of the amount
+	// of goroutines.
+	RoutTimer int `json:"rout_timer"`
+	// RoutinesPerCore is the desired maximum amount of goroutines that can be
+	// assigned to each processor. In reality, no code pins a fixed amount of
+	// goroutines to each processor. This field simply encourages a developer to
+	// consider a workload with this perspective.
+	RoutinesPerCore int `json:"routines_per_core"`
 }
 
+// Test points the test executables to the test data.
 type Test struct {
-	DbPosition int    `json:"db_position"`
-	FakeData   string `json:"fake_data"`
+	// DbPosition is an index into the Data.Relational array.
+	DbPosition int `json:"db_position"`
+	// FakeData is a local file path to identify .sql scripts.
+	FakeData string `json:"fake_data"`
 }
 
+// Metrics enables or disables various types of runtime metrics.
 type Metrics struct {
+	// GarbageCollection toggles the Prometheus metrics that gather GC data.
 	GarbageCollection bool `json:"garbage_collection"`
-	Memory            bool `json:"memory"`
-	Scheduler         bool `json:"scheduler"`
-	Cpu               bool `json:"cpu"`
-	Lock              bool `json:"lock"`
-	Process           bool `json:"process"`
+	// Memory toggles the Prometheus metrics that gather memory data.
+	Memory bool `json:"memory"`
+	// Schedular toggles the Prometheus metrics that gather schedular data.
+	Scheduler bool `json:"scheduler"`
+	// Cpu toggles the metrics that gather runtime data matching
+	// "^/cpu/classes/.*"
+	Cpu bool `json:"cpu"`
+	// Lock toggles the metrics that gather runtime data matching
+	// "^/sync/mutex/.*"
+	Lock bool `json:"lock"`
+	// Process toggles the Prometheus metrics in
+	// collectors.NewProcessCollector(opt)
+	Process bool `json:"process"`
 }
 
+// Cache currently represents a Redis server.
 type Cache struct {
-	Host      string `json:"host"`
-	Port      string `json:"port"`
-	Db        int    `json:"db"`
-	User      string `json:"user"`
-	Sslmode   bool   `json:"sslmode"`
-	Secret    string `json:"secret"`
+	Host    string `json:"host"`
+	Port    string `json:"port"`
+	Db      int    `json:"db"`
+	User    string `json:"user"`
+	Sslmode bool   `json:"sslmode"`
+	// Secret is a Openbao HTTP endpoint.
+	Secret string `json:"secret"`
+	// SecretKey is a Openbao JSON data field.
 	SecretKey string `json:"secret_key"`
 }
