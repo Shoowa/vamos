@@ -14,13 +14,19 @@ eases operation.
 Provide the application a config file named _dev.json_ or _prod.json_ in the
 _config_ directory. The file is concerned with the following:
 1. The location of the server guarding secrets.
+    - Local file paths to read x509 cert & key, & intermediate CA.
 2. The location of a Postgres instance and its sensitive credential.
 3. Fake data to provide to Postgres for development & testing.
-4. Server details, e.g., port, timeouts, TLS as both client and server.
-5. Frequency of healthchecks.
+4. Server details, e.g., host, port, timeouts.
+    - TLS config as server
+    - TLS config as client
+    - Optional rate limiter
+5. Health evaluations.
 6. Logging level.
-7. Configuring of metrics.
-8. Location of a Redis server, its sensitive credentials, & TLS config.
+7. Toggling of metrics.
+8. Location of a Redis server.
+    - Openbao HTTP endpoint & JSON key for password.
+9. Fake data for a local Postgres server.
 
 ```json
 {
@@ -52,7 +58,7 @@ _config_ directory. The file is concerned with the following:
                 "port": "5432",
                 "user": "tester",
                 "database": "test_data",
-                "sslmode": false,
+                "sslmode": true,
                 "secret_key": "password",
                 "secret": "dev-postgres-test"
             }
@@ -73,6 +79,11 @@ _config_ directory. The file is concerned with the following:
         },
         "secret_ca": "intermediate-ca",
         "secret_ca_key": "int_ca",
+        "global_rate_limiter": {
+            "active" : true,
+            "average" : 100,
+            "burst" : 200
+        },
         "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,
@@ -1277,6 +1288,28 @@ configuration file and access storage of sensitive credentials.
 ~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
 ```
 
+### Rate Limiting
+A simple Token Bucket rate limiter from the official external library can be
+activated in the _config_ file. Toggle the field *global_rate_limiter_ to *true*
+and define the amount of tokens refilled per second in the _average_ field, and
+define the amount spent per second in the _burst_ field.
+```json
+{
+    "httpserver": {
+        "global_rate_limiter": {
+            "active" : true,
+            "average" : 100,
+            "burst" : 200
+        },
+        "port": "8443",
+        "timeout_read": 5,
+        "timeout_write": 10,
+        "timeout_idle": 60
+    }
+}
+```
+Consider the amount of goroutines monitored in _health.routines_per_core_ when
+defining the amount of tolerated requests.
 
 ### Router Creation Requires An Interface
 The _NewRouter_ function accepts a custom interface named _Gatherer_, so that it
@@ -1301,7 +1334,6 @@ memory, and the scheduler[^m4], and even the CPU and Mutexes.[^m5] A Process
 Collector measures the state of the CPU, MEM, file descriptors, and the start
 time of the process.[^m6]
 ```json
-// config/dev.json
 "metrics": {
     "garbage_collection": true,
     "memory": true,

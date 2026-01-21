@@ -48,6 +48,11 @@
         },
         "secret_ca": "intermediate-ca",
         "secret_ca_key": "int_ca",
+        "global_rate_limiter": {
+            "active" : true,
+            "average" : 100,
+            "burst" : 200
+        },
         "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,
