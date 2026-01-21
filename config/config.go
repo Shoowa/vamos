@@ -152,6 +152,19 @@ type TlsSecret struct {
 	KeyField string `json:"key_field"`
 }
 
+// RateLimiter configures a token bucket rate limiter for all routes. Each token
+// represents a single HTTP request. Every second, the "average" amount of
+// tokens is added to the bucket. And the router is allowed to spend the "burst"
+// amount per second.
+type RateLimiter struct {
+	// Active toggles the global rate limiter on and off.
+	Active bool `json:"active"`
+	// Avergae is the amount of tokens refilled per second.
+	Average float64 `json:"average"`
+	// Burst is the maximum amount of tokens spent per second.
+	Burst int `json:"burst"`
+}
+
 // HttpServer expects a CA, x509 cert, & key as a server. And a x509 cert & key
 // as a client for an internal network.
 type HttpServer struct {
@@ -173,6 +186,8 @@ type HttpServer struct {
 	TlsServer *TlsSecret `json:"tls_server"`
 	// TlsClient is configuration for the application to become a secure client.
 	TlsClient *TlsSecret `json:"tls_client"`
+	// GlobalRateLimiter is an optional rate limiter.
+	GlobalRateLimiter *RateLimiter `json:"global_rate_limiter"`
 }
 
 // Health configures the thresholds for various healthchecks.
