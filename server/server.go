@@ -14,9 +14,19 @@ import (
 	"time"
 
 	"github.com/Shoowa/vamos/config"
+	"github.com/Shoowa/vamos/router"
 )
 
 const GRACE_PERIOD = time.Second * 15
+
+// addGlobalRateLimiter coditionally applies a rate limiting middleware to a router.
+func addGlobalRateLimiter(cfg *config.RateLimiter, rtr http.Handler) http.Handler {
+	if cfg.Active == true {
+		limiter := router.CreateRateLimiter(cfg)
+		return router.Limit(limiter, rtr)
+	}
+	return rtr
+}
 
 // NewServer creates a custom http.Server struct. And transfers dependencies in
 // Backbone to the routing layer, so that HTTP Handlers can access a logger, a
@@ -32,7 +42,7 @@ func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate, s
 	base, stop := context.WithCancel(context.Background())
 	s := &http.Server{
 		Addr:         ":" + cfg.HttpServer.Port,
-		Handler:      router,
+		Handler:      addGlobalRateLimiter(cfg.HttpServer.GlobalRateLimiter, router),
 		ErrorLog:     slog.NewLogLogger(slogger.Handler(), slog.LevelError),
 		ReadTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutRead),
 		WriteTimeout: time.Second * time.Duration(cfg.HttpServer.TimeoutWrite),
