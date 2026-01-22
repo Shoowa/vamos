@@ -21,6 +21,24 @@ func (recorder *statusRecorder) WriteHeader(code int) {
 	recorder.ResponseWriter.WriteHeader(code)
 }
 
+func recordResponses(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK,
+		}
+
+		next.ServeHTTP(recorder, r)
+
+		if recorder.statusCode == 404 {
+			metrics.HttpRequestCounter.WithLabelValues("404", "invalid path", r.Method).Inc()
+		} else {
+			status := strconv.Itoa(recorder.statusCode)
+			metrics.HttpRequestCounter.WithLabelValues(status, r.URL.Path, r.Method).Inc()
+		}
+	})
+}
+
 // Bundle holds the logger & router, and satisfies the ServeHTTP interface. This
 // enables the creation of a middleware for standardized logging.
 type Bundle struct {
