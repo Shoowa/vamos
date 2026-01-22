@@ -39,6 +39,19 @@ func recordResponses(next http.Handler) http.Handler {
 	})
 }
 
+func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(
+			"Inbound",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"uagent", r.Header.Get("User-Agent"),
+		)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Bundle holds the logger & router, and satisfies the ServeHTTP interface. This
 // enables the creation of a middleware for standardized logging.
 type Bundle struct {
