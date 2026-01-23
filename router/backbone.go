@@ -84,6 +84,23 @@ func WithCache(client *redis.Client) Option {
 	}
 }
 
+// ServerError logs an error, then produces a HTTP response appropriate for
+// common errors.
+func (b *Backbone) ServerError(w http.ResponseWriter, r *http.Request, err error) {
+	method := r.Method
+	path := r.URL.Path
+
+	switch {
+	case errors.Is(err, context.Canceled):
+		b.Logger.Warn("HTTP", "status", StatusClientClosed, "method", method, "path", path)
+	case errors.Is(err, context.DeadlineExceeded):
+		b.Logger.Error("HTTP", "status", http.StatusGatewayTimeout, "method", method, "path", path)
+		http.Error(w, "timeout", http.StatusGatewayTimeout)
+	case errors.Is(err, sql.ErrNoRows):
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		b.Logger.Error("HTTP", "err", err.Error(), "method", method, "path", path)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
