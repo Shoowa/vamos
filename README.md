@@ -1,18 +1,21 @@
 # ¡Vamos!
 [![Go Reference](https://pkg.go.dev/badge/github.com/Shoowa/vamos.svg)](https://pkg.go.dev/github.com/Shoowa/vamos)
 
-A library for a Golang microservice. It is configured with logging, metrics,
-health checks, & profiling. It is also integrated with secrets storage and a
-relational database.
+A library for a Go HTTP server. It is configured with TLS 1.3, rate limiting,
+logging, metrics, health checks, & profiling. It is integrated with Openbao,
+Postgres, & Redis.
+
+A virtual [development environment](#development-environment) is included in this repository.
 
 A corporate development team can deploy a prototype into a production
-environment and expect operational maturity. _Vamos_ hastens development and
-eases operation.
+environment as a micro-service and expect operational maturity. _Vamos_ hastens
+development and eases operation.
 
 
 ## Quick Start
 Provide the application a config file named _dev.json_ or _prod.json_ in the
-_config_ directory. The file is concerned with the following:
+_config_ directory. View the *_example/config/dev.json*. The file is concerned
+with the following:
 1. The location of the server guarding secrets.
     - Local file paths to read x509 cert & key, & intermediate CA.
 2. The location of a Postgres instance and its sensitive credential.
@@ -28,99 +31,11 @@ _config_ directory. The file is concerned with the following:
     - Openbao HTTP endpoint & JSON key for password.
 9. Fake data for a local Postgres server.
 
-```json
-{
-    "test": {
-        "db_position": 0,
-        "fake_data": "testdata/fake_data_db1.sql"
-    },
-    "logger": {
-        "level": "debug"
-    },
-    "secrets": {
-        "openbao": {
-            "tls_client": {
-                "ca_path": "/path/to/intermediate_ca.pem",
-                "cert_path": "/path/to/cert.pem",
-                "cert_field": "",
-                "key_path": "/path/to/key.pem",
-                "key_field": ""
-            },
-            "scheme": "https",
-            "host": "localhost",
-            "port": "8233"
-        }
-    },
-    "data": {
-        "relational": [
-            {
-                "host": "localhost",
-                "port": "5432",
-                "user": "tester",
-                "database": "test_data",
-                "sslmode": true,
-                "secret_key": "password",
-                "secret": "dev-postgres-test"
-            }
-        ]
-    },
-    "httpserver": {
-        "tls_server": {
-            "cert_path": "dev-app-cert",
-            "cert_field": "cert",
-            "key_path": "dev-app-key",
-            "key_field": "private_key"
-        },
-        "tls_client": {
-            "cert_path": "dev-app-cert",
-            "cert_field": "client_cert",
-            "key_path": "dev-app-key",
-            "key_field": "client_private_key"
-        },
-        "secret_ca": "intermediate-ca",
-        "secret_ca_key": "int_ca",
-        "global_rate_limiter": {
-            "active" : true,
-            "average" : 100,
-            "burst" : 200
-        },
-        "port": "8443",
-        "timeout_read": 5,
-        "timeout_write": 10,
-        "timeout_idle": 60
-    },
-    "health": {
-        "ping_db_timer": 60,
-        "heap_timer": 30,
-        "heap_size": 500,
-        "rout_timer": 30,
-        "routines_per_core": 300
-    },
-    "metrics": {
-        "garbage_collection": false,
-        "memory": true,
-        "scheduler": false,
-        "cpu": false,
-        "lock": false,
-        "process": false
-    },
-    "cache": {
-        "host": "localhost",
-        "port": "6379",
-        "db": 0,
-        "user": "default",
-        "sslmode": true,
-        "secret_key": "password",
-        "secret": "dev-redis-test"
-    }
-}
-```
-
 #### Sequence of Database List
-Notice _data.relational_ is an array. The sequence is preserved after the
-configuration is read. Accessing a database requires acknowledging its position
-in the array. In the example, the command to connect to a database includes a
-reference to its position in the array.
+Notice _data.relational_ in *_example/config/dev.json* is an array. The sequence
+is preserved after the configuration is read. Accessing a database requires
+acknowledging its position in the array. In the example, the command to connect
+to a database includes a reference to its position in the array.
 ```go
 // _example/main.go
 package main
