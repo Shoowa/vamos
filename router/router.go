@@ -10,12 +10,18 @@ import (
 // that wraps around a Backbone. Ideally, dependencies are smuggled into the
 // router, and this interface allows for the easy creation of a server in both
 // production and testing.
-func NewRouter(b Gatherer) *Bundle {
+func NewRouter(b Gatherer) http.Handler {
 	mux := http.NewServeMux()
 
 	addOperationalRoutes(mux, b)
+	endpoints := b.GetEndpoints()
+	for _, endpoint := range endpoints {
+		mux.HandleFunc(endpoint.VerbAndPath, endpoint.Handler)
+	}
 
-	routerWithLoggingMiddleware := NewBundle(b.GetLogger(), mux)
+	responseRecordingMW := recordResponses(mux)
+	loggingMW := logRequests(b.GetLogger(), responseRecordingMW)
+	gaugingMW := gaugeRequests(loggingMW)
 
-	return routerWithLoggingMiddleware
+	return gaugingMW
 }
