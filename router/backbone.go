@@ -29,11 +29,7 @@ type Gatherer interface {
 	GetBackbone() *Backbone
 	AddBackbone(*Backbone)
 	GetEndpoints() []Endpoint
-	eHand(errHandler) http.HandlerFunc
 }
-
-// Similar to a standard http.Handler, but returns an error.
-type errHandler func(http.ResponseWriter, *http.Request) error
 
 // Option allows us to selectively add items to the Backbone struct.
 type Option func(*Backbone)
@@ -88,25 +84,6 @@ func WithCache(client *redis.Client) Option {
 	}
 }
 
-// eHand wraps around a standard http.Handler, and reads an error, then produces
-// a HTTP response appropriate for common errors.
-func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		err := f(w, req)
-		if err != nil {
-			switch {
-			case errors.Is(err, context.Canceled):
-				b.Logger.Error("HTTP", "status", StatusClientClosed)
-			case errors.Is(err, context.DeadlineExceeded):
-				b.Logger.Error("HTTP", "status", http.StatusRequestTimeout)
-				http.Error(w, "timeout", http.StatusRequestTimeout)
-			case errors.Is(err, sql.ErrNoRows):
-				w.WriteHeader(http.StatusNoContent)
-			default:
-				b.Logger.Error("HTTP", "err", err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		}
 	}
 }
 

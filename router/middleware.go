@@ -66,5 +66,5 @@ func gaugeRequests(next http.Handler) http.Handler {
 // code review.
 type Endpoint struct {
 	VerbAndPath string
-	Handler     errHandler
+	Handler     http.HandlerFunc
 }
