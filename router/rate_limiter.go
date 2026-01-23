@@ -23,3 +23,12 @@ func Limit(limiter *rate.Limiter, next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func optionalGlobalRateLimiter(cfg *config.RateLimiter, next http.Handler) http.Handler {
+	if cfg.Active == false {
+		return next
+	}
+
+	limiter := CreateRateLimiter(cfg)
+	return Limit(limiter, next)
+}
