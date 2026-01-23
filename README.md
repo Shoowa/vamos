@@ -583,27 +583,39 @@ _Backbone_, or methods of the struct wrapping _Backbone_ in a downstream
 executable. Access a Postgres database in the field _DbHandle_ or through a
 _Queries_ struct residing in the wrapper built in a downstream executable.
 
-A custom func type named _errHandler_ has been created to make responding to
-HTTP requests feel like idiomatic Go with a returned _error_. The usual work
-performed by a HTTP Handler, such as reading data from a database, will be done
-inside an _errHandler_.
+A Backbone method named _ServerError_ has been created to easily respond to
+errant HTTP requests.
 ```go
 // router/backbone.go
 package router
 // abbreviated for clarity...
 
-// Similar to the http.HandlerFunc, but returns an error.
-type errHandler func(http.ResponseWriter, *http.Request) error
+func (b *Backbone) ServerError(w http.ResponseWriter, r *http.Request, err error) {
+	method := r.Method
+	path := r.URL.Path
+
+	switch {
+	case errors.Is(err, context.Canceled):
+		b.Logger.Warn("HTTP", "status", StatusClientClosed, "method", method, "path", path)
+	case errors.Is(err, context.DeadlineExceeded):
+		b.Logger.Error("HTTP", "status", http.StatusGatewayTimeout, "method", method, "path", path)
+		http.Error(w, "timeout", http.StatusGatewayTimeout)
+	case errors.Is(err, sql.ErrNoRows):
+		w.WriteHeader(http.StatusNoContent)
+	default:
+		b.Logger.Error("HTTP", "err", err.Error(), "method", method, "path", path)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
 ```
 
-And a hypothetical HTTP errHandler can be drafted in a downstream executable to
-resemble this:
+Error handling can be invoked in an executable's http.Handler like this:
 ```go
 // _example/routes/routes.go
 package routes
 // abbreviated for clarity...
 
-func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
@@ -611,23 +623,22 @@ func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 
 	result, err := d.Query.GetAuthor(timer, surname)
 
-    // No need to hande the error inside the body of this modified handler.
-    // Simply return it.
+    // Pass err to the ServerError method, and return early.
 	if err != nil {
-        return err
+        d.ServerError(w, req, err)
+        return
 	}
 
 	w.Write([]byte(result.Name))
-	return nil
 }
 ```
 
 
-### Add New errHandler to Router
+### Add New http.Handler to Router
 In a downstream executable, add a method named _GetEndpoints()_ to the custom
 dependency struct that wraps the _Backbone_ to conform to the library interface
-_Gatherer_. This is required for the router to adopt routes written in
-the executable.
+_Gatherer_. This is required for the router to adopt routes written in the
+executable.
 
 Select the HTTP method that is most appropriate for the writing and reading of
 data. The ability to select _GET_ or _POST_ as an argument in parameter
@@ -650,94 +661,34 @@ func (d *Deps) GetEndpoints() []router.Endpoint {
 }
 ```
 
-The returned _error_ of _readAuthorName()_ will be managed & recorded by the
-function _eHand_. The _errHandler_ needs to be wrapped by _eHand_ to conform to
-the _http.HandlerFunc_ interface and be accepted by the router.
-
-```go
-// routes/backbone.go
-package router
-// abbreviated for clarity...
-
-func (b *Backbone) eHand(f errHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-        // f is the method b.readAuthorName
-		err := f(w, req)
-
-        // Error management begins here.
-        // 1) Did the client cancel the request? No response needed.
-        // 2) Did the request exceed a timer?
-        // 3) Did the database simply lack the data? Not really an error.
-        // 4) Mask unanticipated errors with a 503.
-		if err != nil {
-			switch {
-			case errors.Is(err, context.Canceled):
-				b.Logger.Error("HTTP", "status", StatusClientClosed)
-			case errors.Is(err, context.DeadlineExceeded):
-				b.Logger.Error("HTTP", "status", http.StatusRequestTimeout)
-				http.Error(w, "timeout", http.StatusRequestTimeout)
-			case errors.Is(err, sql.ErrNoRows):
-				w.WriteHeader(http.StatusNoContent)
-			default:
-				b.Logger.Error("HTTP", "err", err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-		}
-	}
-}
-```
-
-The _Bundle_ method _AddRoutes(deps *Gatherer)_
-conveniently adds HTTP paths and handlers to the _http.ServeMux_, and wraps the
-custom _errHandler_ methods with the aforementioned _eHand_ method.
-```go
-// routes/middleware.go
-package router
-// abbreviated for clarity...
-
-// Endpoint is a struct that can be used to create a menu of routes.
-type Endpoint struct {
-	VerbAndPath string
-	Handler     errHandler
-}
-
-func (b *Bundle) AddRoutes(deps *Gatherer) {
-	routeMenu := deps.GetEndpoints()
-	for _, endpoint := range routeMenu {
-		b.Router.HandleFunc(endpoint.VerbAndPath, deps.eHand(endpoint.Handler))
-	}
-}
-```
-
-
 ### Developer Logs
-Inside a HTTP handler or errHandler, record errors and extra data by simply
-invoking the _Logger_ residing in the _Backbone_ struct, or allow the method
-_eHand_ to record errors.
+Inside a http.Handler, record errors and extra data by simply invoking the
+_Logger_ residing in the _Backbone_ struct.
 
-This is how a hypothetical HTTP errHandler drafted in the library looks. Notice
-it can directly access a _Backbone_ field.
+This is how a hypothetical http.Handler drafted in the library looks. Notice it
+can directly access a _Backbone_ field.
 ```go
 package router
 // abbreviated for clarity...
 
-func (b *Backbone) doSomething(w http.ResponseWriter, req *http.Request) error {
+func (b *Backbone) doSomething(w http.ResponseWriter, req *http.Request) {
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
 	defer cancel()
 
 	result, err := b.DbHandle.Ping(timer)
 
 	if err != nil {
-        return err
+        d.Logger.Error("big_message", "err", err.Error())
+        d.ServerError(w, req, err)
+        return
 	}
 
     b.Logger.Info("Did something important... but we should silently succeed.")
 	w.Write([]byte("ok"))
-    return nil
 }
 ```
 
-This is a hypothetical HTTP errHandler drafted in a downstream executable that
+This is a hypothetical http.Handler drafted in a downstream executable that
 imports the library. It is a method on a struct named _Deps_ that wraps around
 the _Backbone_. And _Deps_ holds a sqlC generated _Queries_ struct in a custom
 field conveniently named _Query_.
@@ -757,7 +708,7 @@ type Deps struct {
 
 d := &Deps{backbone, first.New(backbone.DbHandle)} // add sqlC *Queries struct
 
-func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) {
 	surname := req.PathValue("surname")
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
@@ -766,12 +717,11 @@ func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 	result, err := d.Query.GetAuthor(timer, surname)
 
 	if err != nil {
-        d.Logger.Error("readAuthorName", "msg", err.Error())
-        return err
+        d.ServerError(w, req, err)
+        return
 	}
 
 	w.Write([]byte(result.Name))
-    return nil
 }
 ```
 
@@ -820,7 +770,7 @@ package routes
 
 import "metric/metric"
 
-func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) {
     metric.ReadAuthCount.Inc()
     surname := req.PathValue("surname")
     // skipping body...
@@ -943,7 +893,7 @@ Access the Redis client in the Backbone struct when constructing HTTP Handlers.
 package router
 // abbreviated for clarity...
 
-func (b *Deps) writeCache(w http.ResponseWriter, req *http.Request) error {
+func (b *Deps) writeCache(w http.ResponseWriter, req *http.Request) {
     stuff := req.PathValue("item") // You'll probably use JSON instead.
 
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
@@ -951,11 +901,11 @@ func (b *Deps) writeCache(w http.ResponseWriter, req *http.Request) error {
 
 	cacheErr := d.Cache.Set(timer, "KEY", stuff, 120*time.Second).Err()
     if cacheErr != nil {
-        return cacheErr
+        d.ServerError(w, req, cacheErr)
+        return
     }
 
 	w.Write([]byte("All good")) // Don't really do this in production.
-    return nil
 }
 ```
 
@@ -1351,31 +1301,23 @@ implement it with the _PGX_ connection pool struct.
 New metrics needs to be registered to be activated.
 
 The routing middleware in _router/middleware.go_ counts the number of HTTP
-responses by HTTP Verb & Path. And counts the number of active connections.
+responses by HTTP Verb & Path.
 ```go
 // router/middleware.go
 package router
 // abbreviated for clarity...
 
-func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-    // Recognize an increase in the number of active connections.
-	metrics.HttpRequestsGauge.Inc()
+func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(
+			"Inbound",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"uagent", r.Header.Get("User-Agent"),
+		)
 
-    // Create a custom struct that implements the ResponseWriter interface.
-	recorder := &statusRecorder{
-		ResponseWriter: w,
-		statusCode:     http.StatusOK,
-	}
-
-    // Insert custom struct into the router's dispatcher.
-	b.Router.ServeHTTP(recorder, req)
-
-    // Recognize a decrease in the number of active connections after response.
-	metrics.HttpRequestsGauge.Dec()
-
-    // Record the response results.
-	status := strconv.Itoa(recorder.statusCode)
-	metrics.HttpRequestCounter.WithLabelValues(status, req.URL.Path, req.Method).Inc()
+		next.ServeHTTP(w, r)
+	})
 }
 ```
 
@@ -1430,30 +1372,32 @@ This can be observed during startup.
 
 
 ### Logging Middleware
-The middleware is configured in _router/middleware.go_ as a method on _Bundle_
-that adopts the _http.Handler interface_ from the router by implementing
-_ServeHTTP(http.ReponseWriter, *http.Request)_.
+The middleware is configured in _router/middleware.go_ as a closure that passes
+a logger into a _http.Handler_.
 ```go
 // router/middleware.go
 package router
 // abbreviated for clarity...
 
-func (b *Bundle) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	b.Logger.Info(
-		"Inbound",
-		"method", req.Method,
-		"path", req.URL.Path,
-		"uagent", req.Header.Get("User-Agent"),
-	)
+func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(
+			"Inbound",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"uagent", r.Header.Get("User-Agent"),
+		)
 
-	b.Router.ServeHTTP(w, req)
+		next.ServeHTTP(w, r)
+	})
 }
 ```
 Details of every _request_ are recorded. The HTTP method, path, and _User-Agent_
 header are highlighted. After those details are logged, the function continues
-to the regular router in _b.Router.ServeHTTP(w, req)_.
+to the next _http.Handler_.
 
-By satisfying this _interface_, the _http.Server_ can treat _Bundle_ as a router.
+By satisfying this _interface_, the _http.Server_ can treat middleware as a
+router.
 ```go
 // server/server.go
 package server
@@ -1468,22 +1412,32 @@ func NewServer(cfg *config.Config, router http.Handler) *http.Server {
 }
 ```
 
-The _Backbone_ struct conforms to the custom interface _Gatherer_, so it
-can be accepted by the function _NewRouter_. _Backbone_ holds the logger that
-can be used by the HTTP Handlers & _errHandlers_.
+The _Backbone_ struct conforms to the custom interface _Gatherer_, so it can be
+accepted by the function _NewRouter_. _Backbone_ holds the logger that can be
+used by HTTP Handlers and middleware.
 
-The logger is actually transferred from _Backbone_ to _Bundle_. The _Bundle_
-also acquires the STDLIB router _http.ServeMux_. It holds both the logger and
-the router, so it can record incoming requests.
 ```go
 // router/router.go
 package router
 // abbreviated for clarity...
 
-func NewRouter(heh Gatherer) *Bundle {
+func NewRouter(dependencies Gatherer) http.Handler {
 	mux := http.NewServeMux()
-	routerWithLoggingMiddleware := NewBundle(heh.GetLogger(), mux)
-	return routerWithLoggingMiddleware
+
+    // Read list of HTTP methods & http.Handlers.
+	endpoints := dependencies.GetEndpoints()
+
+    // Add each HTP path and handler to the router.
+	for _, endpoint := range endpoints {
+		mux.HandleFunc(endpoint.VerbAndPath, endpoint.Handler)
+	}
+
+    // Apply middleware to the router.
+	responseRecordingMW := recordResponses(mux)
+	loggingMW := logRequests(dependencies.GetLogger(), responseRecordingMW)
+	gaugingMW := gaugeRequests(loggingMW)
+
+	return gaugingMW
 }
 ```
 

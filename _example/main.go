@@ -52,9 +52,8 @@ func main() {
 	// Wrap the backbone with a native struct that has its own HTTP Handlers.
 	backboneWrapper := routes.WrapBackbone(backbone)
 
-	// Create router with dependencies and errHandlers.
+	// Create router with dependencies.
 	rtr := router.NewRouter(backboneWrapper)
-	rtr.AddRoutes(backboneWrapper)
 
 	// Also add a HTTP Handler directly to router.
 	rtr.Router.HandleFunc("GET /test1", backboneWrapper.Hndlr1)

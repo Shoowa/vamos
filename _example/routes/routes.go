@@ -14,7 +14,7 @@ import (
 
 const TIMEOUT_REQUEST = time.Second * 3
 
-// Deps can hold the Bundle struct to access the Router, and can hold the
+// Deps can hold the Backbone struct to access the Router, and can hold the
 // Queries struct to easily query the database.
 type Deps struct {
 	*router.Backbone
@@ -46,18 +46,14 @@ func (d *Deps) Hndlr1(w http.ResponseWriter, req *http.Request) {
 }
 
 // Contrived error.
-func (d *Deps) hndlr2(w http.ResponseWriter, req *http.Request) error {
+func (d *Deps) hndlr2(w http.ResponseWriter, req *http.Request) {
 	d.Logger.Info("2, 2, 2...")
 	err := errors.New("Break! Failure! Error!")
-	if err != nil {
-		return err
-	}
-	w.Write([]byte("This is a 2nd PSA!"))
-	return nil
+	d.ServerError(w, req, err)
 }
 
 // Handler that leverages sqlC Queries.
-func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
+func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) {
 	metric.ReadAuthCount.Inc()
 	surname := req.PathValue("surname")
 	timer, cancel := context.WithTimeout(req.Context(), TIMEOUT_REQUEST)
@@ -65,9 +61,9 @@ func (d *Deps) readAuthorName(w http.ResponseWriter, req *http.Request) error {
 	result, err := d.Query.GetAuthor(timer, surname)
 
 	if err != nil {
-		return err
+		d.ServerError(w, req, err)
+		return
 	}
 
 	w.Write([]byte(result.Name))
-	return nil
 }
