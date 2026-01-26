@@ -1247,7 +1247,7 @@ package logging
 
 func configure(cfg *config.Config) *slog.HandlerOptions {
 	logLevel := &slog.LevelVar{}
-	if cfg.Logger.Level == "debug" {
+	if cfg.Logger.Debug == true {
 		logLevel.Set(slog.LevelDebug)
 	} else {
 		logLevel.Set(slog.LevelWarn)
@@ -1284,6 +1284,8 @@ This can be observed during startup.
 ~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
 {"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
 ```
+When skipping the APP_ENV e-var, the app will deploy under production
+conditions represented in _config/prod.json_.
 
 
 ### Logging Middleware

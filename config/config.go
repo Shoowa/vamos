@@ -64,9 +64,8 @@ type Config struct {
 
 // Logger expects debug to be enabled or disabled.
 type Logger struct {
-	// Value can be "debug" or nothing. When anything other than "debug", then
-	// the logger will select WARN as the log level.
-	Level string `json:"level"`
+	// Value can be TRUE or FALSE. And the logger will use either DEBUG or WARN.
+	Debug bool `json:"debug"`
 }
 
 // Secrets is currently oriented toward Openbao.

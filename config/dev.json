@@ -3,7 +3,7 @@
         "db_position": 0
     },
     "logger": {
-        "level": "debug"
+        "debug": true
     },
     "secrets": {
         "openbao": {

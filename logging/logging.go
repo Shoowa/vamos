@@ -10,7 +10,7 @@ import (
 
 func configure(cfg *config.Config) *slog.HandlerOptions {
 	logLevel := &slog.LevelVar{}
-	if cfg.Logger.Level == "debug" {
+	if cfg.Logger.Debug == true {
 		logLevel.Set(slog.LevelDebug)
 	} else {
 		logLevel.Set(slog.LevelWarn)
