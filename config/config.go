@@ -164,6 +164,16 @@ type RateLimiter struct {
 	Burst int `json:"burst"`
 }
 
+// PreventCORF configures an optional middleware that inspects requests from a
+// browser.
+type PreventCORF struct {
+	// Active is a toggle to apply CORF prevention middleware.
+	Active bool `json:"active"`
+	// Domains is a list of acceptable origins for a public-facing server
+	// responding to browser requests.
+	Domains []string `json:"domains"`
+}
+
 // HttpServer expects a CA, x509 cert, & key as a server. And a x509 cert & key
 // as a client for an internal network.
 type HttpServer struct {
@@ -187,6 +197,8 @@ type HttpServer struct {
 	TlsClient *TlsSecret `json:"tls_client"`
 	// GlobalRateLimiter is an optional rate limiter.
 	GlobalRateLimiter *RateLimiter `json:"global_rate_limiter"`
+	// CheckCORF enables same origin checking, and permits other origins.
+	CheckCORF *PreventCORF `json:"check_corf"`
 }
 
 // Health configures the thresholds for various healthchecks.

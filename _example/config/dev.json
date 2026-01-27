@@ -53,6 +53,10 @@
             "average" : 100,
             "burst" : 200
         },
+        "check_corf": {
+            "active": false,
+            "domains": []
+        },
         "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,
