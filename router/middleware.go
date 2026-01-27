@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Shoowa/vamos/config"
 	"github.com/Shoowa/vamos/metrics"
 )
 
@@ -59,6 +60,23 @@ func gaugeRequests(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// prevent CORF mitigates Cross Origin Request Forgery.
+func preventCORF(cfg *config.PreventCORF, next http.Handler) http.Handler {
+	// Skip applying the CORF middleware when undesired.
+	if cfg.Active == false {
+		return next
+	}
+
+	protection := http.NewCrossOriginProtection()
+
+	// Add other domains when listed. This is optional.
+	for _, domain := range cfg.Domains {
+		protection.AddTrustedOrigin(domain)
+	}
+
+	return protection.Handler(next)
 }
 
 // Endpoint is a custom struct that can be used to create a menu of routes.

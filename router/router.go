@@ -15,16 +15,22 @@ import (
 func NewRouter(cfg *config.HttpServer, b Gatherer) http.Handler {
 	mux := http.NewServeMux()
 
+	// Add health check.
 	addOperationalRoutes(mux, b)
+
+	// Conveniently add routes.
 	endpoints := b.GetEndpoints()
 	for _, endpoint := range endpoints {
 		mux.HandleFunc(endpoint.VerbAndPath, endpoint.Handler)
 	}
 
+	// Add mandatory middleware.
 	responseRecordingMW := recordResponses(mux)
 	loggingMW := logRequests(b.GetLogger(), responseRecordingMW)
 	gaugingMW := gaugeRequests(loggingMW)
 
-	finalMW := optionalGlobalRateLimiter(cfg.GlobalRateLimiter, gaugingMW)
+	// Add optional middleware or stop at gaugeMW.
+	corfMW := preventCORF(cfg.CheckCORF, gaugingMW)
+	finalMW := optionalGlobalRateLimiter(cfg.GlobalRateLimiter, corfMW)
 	return finalMW
 }
