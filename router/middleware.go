@@ -76,6 +76,10 @@ func preventCORF(cfg *config.PreventCORF, next http.Handler) http.Handler {
 		protection.AddTrustedOrigin(domain)
 	}
 
+	for _, paths := range cfg.Bypass {
+		protection.AddInsecureBypassPattern(paths)
+	}
+
 	return protection.Handler(next)
 }
 
