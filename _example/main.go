@@ -58,11 +58,6 @@ func main() {
 		router.WithCache(cache),
 	)
 
-	// Launch background health checks. Some of these are configurable. The
-	// health checks evaluate connectivity to a database, so this a method on
-	// the depedency-wrapper.
-	backbone.SetupHealthChecks(cfg)
-
 	// In your executable, wrap the library Backbone with a native struct that
 	// has its own HTTP Handlers. Wrap the wrapping. This secondary wrapper will
 	// include a sqlC generated Query handle that can be accessed from the body
@@ -71,7 +66,7 @@ func main() {
 
 	// Feed the dependencies into a router. NewRouter will use the Gatherer
 	// interface method GetEndpoints to add paths & handlers to a router.
-	appRouter := router.NewRouter(cfg.HttpServer, backboneWrapper)
+	appRouter := router.NewRouter(cfg, backboneWrapper)
 
 	// Read x509 certificate & key for this server to secure connections with
 	// clients.

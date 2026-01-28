@@ -712,7 +712,7 @@ logic to evaluate the health of the application and the health of any
 dependencies, then answer. That flow of events doesn't happen in this web app.
 
 Instead, the web server responds to any request for health by simply reading
-from a custom struct named _Health_ that resides in _Backbone_.
+from a custom struct named _Health_.
 ```go
 // router/operations.go
 package router
@@ -721,18 +721,19 @@ package router
 type Health struct {
 	Rdbms    bool
 	Heap     bool
+    Routines bool
 }
 ```
 _Health_ has several _boolean_ fields. Any request for the status of health is
-answered by a method that reads from these fields and evaluates the totality of
-the _boolean_ conditions.
+answered by a http.Handler that reads from these fields and evaluates the
+totality of the _boolean_ conditions.
 ```go
 // router/operations.go
 package router
 // abbreviated for clarity...
 
 func (h *Health) PassFail() bool {
-	return h.Rdbms && h.Heap
+	return h.Rdbms && h.Heap && h.Routines
 }
 ```
 
@@ -742,14 +743,16 @@ The answer is then provided as a HTTP Header -- either 204 or 503.
 package router
 // abbreviated for clarity...
 
-func (b *Backbone) Healthcheck(w http.ResponseWriter, r *http.Request) {
-	status := b.Health.PassFail()
+func assessHealth(health *Health, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status := health.PassFail()
 
-	if status {
-		w.WriteHeader(http.StatusNoContent)
-	} else {
-		b.Logger.Error("Failed health check")
-		w.WriteHeader(http.StatusServiceUnavailable)
+		if status {
+			w.WriteHeader(http.StatusNoContent)
+		} else {
+			logger.Error("Failed health check")
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
 	}
 }
 ```
@@ -763,11 +766,20 @@ _beep_ function.
 package router
 // abbreviated for clarity...
 
-func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
+func setupHealthChecks(cfg *config.Config, b *Backbone) {
 	pingDbTimer := time.Duration(cfg.Health.PingDbTimer)
 	heapTimer := time.Duration(cfg.Health.HeapTimer)
 
-	go beep(pingDbTimer, b.PingDB)
+	health := new(Health)
+
+	// Use  closure to add the Health Record to the pinger.
+	pingDB := func() { b.PingDB(health) }
+
+	// Use closure to configure method CheckHeapSize.
+	heapSize := 1024 * 1024 * cfg.Health.HeapSize
+	checkHeapSize := func() { b.CheckHeapSize(health, heapSize, b.Logger) }
+
+	go beep(pingDbTimer, pingDB)
 	go beep(heapTimer, checkHeapSize)
 }
 ```
@@ -1380,7 +1392,6 @@ package router
 
 type Backbone struct {
 	Logger       *slog.Logger
-	Health       *Health
 	DbHandle     *pgxpool.Pool
 	HeapSnapshot *bytes.Buffer
 }
@@ -1407,16 +1418,16 @@ gathered.
 package router
 // abbreviated for clarity...
 
-func (b *Backbone) CheckHeapSize(threshold uint64) {
+func (b *Backbone) checkHeapSize(health *Health, threshold uint64) {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
 
 	if stats.HeapAlloc < threshold {
-		b.Health.Heap = true
+		health.Heap = true
 		return
 	}
 
-	b.Health.Heap = false
+	health.Heap = false
 	b.Logger.Warn("Heap surpassed threshold!", "threshold", threshold, "allocated", stats.HeapAlloc)
 	err := pprof.WriteHeapProfile(b)
 	if err != nil {
