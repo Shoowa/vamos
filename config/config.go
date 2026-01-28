@@ -172,6 +172,8 @@ type PreventCORF struct {
 	// Domains is a list of acceptable origins for a public-facing server
 	// responding to browser requests.
 	Domains []string `json:"domains"`
+	// Bypass is a list of endpoints that need to skip CORF.
+	Bypass []string `json:"bypass"`
 }
 
 // HttpServer expects a CA, x509 cert, & key as a server. And a x509 cert & key

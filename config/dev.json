@@ -54,6 +54,7 @@
         },
         "check_corf": {
             "active": false,
+            "bypass": [],
             "domains": []
         },
         "port": "8443",
