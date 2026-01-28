@@ -125,7 +125,7 @@ func CreateTestServer(t *testing.T) *testServer {
 		router.WithDbHandle(db1),
 	)
 
-	router := router.NewRouter(cfg.HttpServer, backbone)
+	router := router.NewRouter(cfg, backbone)
 	s := httptest.NewServer(router)
 
 	jar, jErr := cookiejar.New(nil)
@@ -184,7 +184,7 @@ func CreateTestServerExtDeps(t *testing.T, d router.Gatherer) *testServer {
 
 	// Incorporate downstream HTTP Handlers into this upstream test server.
 	d.AddBackbone(backbone)
-	router := router.NewRouter(cfg.HttpServer, d)
+	router := router.NewRouter(cfg, d)
 
 	s := httptest.NewServer(router)
 
