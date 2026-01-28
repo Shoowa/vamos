@@ -38,7 +38,6 @@ type Option func(*Backbone)
 // http.Handler.
 type Backbone struct {
 	Logger       *slog.Logger
-	Health       *Health
 	DbHandle     *pgxpool.Pool
 	Cache        *redis.Client
 	HeapSnapshot *bytes.Buffer
@@ -52,11 +51,6 @@ func NewBackbone(options ...Option) *Backbone {
 	for _, opt := range options {
 		opt(b)
 	}
-	health := new(Health)
-	health.Rdbms = false
-	health.Heap = true
-	health.Routines = true
-	b.Health = health
 	buf := new(bytes.Buffer)
 	b.HeapSnapshot = buf
 	return b

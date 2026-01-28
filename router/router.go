@@ -12,11 +12,12 @@ import (
 // that wraps around a Backbone. Ideally, dependencies are smuggled into the
 // router, and this interface allows for the easy creation of a server in both
 // production and testing.
-func NewRouter(cfg *config.HttpServer, b Gatherer) http.Handler {
+func NewRouter(cfg *config.Config, b Gatherer) http.Handler {
+	health := setupHealthChecks(cfg, b.GetBackbone())
 	mux := http.NewServeMux()
 
 	// Add health check.
-	addOperationalRoutes(mux, b)
+	addOperationalRoutes(mux, health, b.GetLogger())
 
 	// Conveniently add routes.
 	endpoints := b.GetEndpoints()
@@ -30,7 +31,7 @@ func NewRouter(cfg *config.HttpServer, b Gatherer) http.Handler {
 	gaugingMW := gaugeRequests(loggingMW)
 
 	// Add optional middleware or stop at gaugeMW.
-	corfMW := preventCORF(cfg.CheckCORF, gaugingMW)
-	finalMW := optionalGlobalRateLimiter(cfg.GlobalRateLimiter, corfMW)
+	corfMW := preventCORF(cfg.HttpServer.CheckCORF, gaugingMW)
+	finalMW := optionalGlobalRateLimiter(cfg.HttpServer.GlobalRateLimiter, corfMW)
 	return finalMW
 }

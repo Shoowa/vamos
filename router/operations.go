@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"log/slog"
 	"runtime"
 	"runtime/pprof"
 	"time"
@@ -41,25 +42,31 @@ func (h *Health) PassFail() bool {
 }
 
 // Ping evaluates the ability to contact a Postgres server
-func (b *Backbone) PingDB() {
+func (b *Backbone) PingDB(health *Health) {
 	timer, cancel := context.WithTimeout(context.Background(), TIMEOUT_PING)
 	defer cancel()
 
 	err := b.DbHandle.Ping(timer)
 	if err != nil {
-		b.Health.Rdbms = false
+		health.Rdbms = false
 		b.Logger.Error("Failed ping", "Rdbms", err.Error())
 		return
 	}
-	b.Health.Rdbms = true
+	health.Rdbms = true
 }
 
 // SetupHealthChecks reads configured values, and leverages closures to apply
 // them to Backbone methods designed to run periodically. Each of those methods
 // evaluates one condition in the application or a dependency.
-func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
+func setupHealthChecks(cfg *config.Config, b *Backbone) *Health {
+	// Create the health record.
+	health := new(Health)
+	health.Rdbms = false
+	health.Heap = true
+	health.Routines = true
+
 	// Report status of connection upon ignition.
-	b.PingDB()
+	b.PingDB(health)
 
 	pingDbTimer := time.Duration(cfg.Health.PingDbTimer)
 	heapTimer := time.Duration(cfg.Health.HeapTimer)
@@ -67,15 +74,20 @@ func (b *Backbone) SetupHealthChecks(cfg *config.Config) {
 
 	// Use closure to configure method CheckHeapSize.
 	heapSize := 1024 * 1024 * cfg.Health.HeapSize
-	checkHeapSize := func() { b.CheckHeapSize(heapSize) }
+	checkHeapSize := func() { b.checkHeapSize(health, heapSize) }
 
-	// Use closure to configure method CheckNumRoutines.
+	// Use closure to configure CheckNumRoutines.
 	limit := runtime.NumCPU() * cfg.Health.RoutinesPerCore
-	checkNumRoutines := func() { b.CheckNumRoutines(limit) }
+	checkNumRoutines := func() { checkNumRoutines(health, limit, b.Logger) }
 
-	go beep(pingDbTimer, b.PingDB)
+	// Use  closure to add the Health Record to the pinger.
+	pingDB := func() { b.PingDB(health) }
+
+	go beep(pingDbTimer, pingDB)
 	go beep(heapTimer, checkHeapSize)
 	go beep(routinesTimer, checkNumRoutines)
+
+	return health
 }
 
 // Write is a method on the Backbone struct designed to conform to an interface,
@@ -90,16 +102,16 @@ func (b *Backbone) Write(p []byte) (n int, err error) {
 // Heap surprasses a configured value. When the heap exceeds a configured size,
 // a health check will fail, and Heap data will be written to a buffer. That
 // data is sensitive, and must be exfiltrated by another function.
-func (b *Backbone) CheckHeapSize(threshold uint64) {
+func (b *Backbone) checkHeapSize(health *Health, threshold uint64) {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
 
 	if stats.HeapAlloc < threshold {
-		b.Health.Heap = true
+		health.Heap = true
 		return
 	}
 
-	b.Health.Heap = false
+	health.Heap = false
 	b.Logger.Warn("Heap surpassed threshold!", "threshold", threshold, "allocated", stats.HeapAlloc)
 	err := pprof.WriteHeapProfile(b)
 	if err != nil {
@@ -109,13 +121,13 @@ func (b *Backbone) CheckHeapSize(threshold uint64) {
 
 // CheckNumRoutines reads the runtime to determine whether or not the amount of
 // routines surpasses a configured value, then fail a health check.
-func (b *Backbone) CheckNumRoutines(limit int) {
+func checkNumRoutines(health *Health, limit int, logger *slog.Logger) {
 	amount := runtime.NumGoroutine()
 	if amount < limit {
-		b.Health.Routines = true
+		health.Routines = true
 		return
 	}
 
-	b.Health.Routines = false
-	b.Logger.Warn("Routines surpassed threshold!", "threshold", limit, "running", amount)
+	health.Routines = false
+	logger.Warn("Routines surpassed threshold!", "threshold", limit, "running", amount)
 }
