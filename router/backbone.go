@@ -37,9 +37,9 @@ type Option func(*Backbone)
 // Backbone holds dependencies that can eventually be accessed by a
 // http.Handler.
 type Backbone struct {
-	Logger       *slog.Logger
-	DbHandle     *pgxpool.Pool
 	Cache        *redis.Client
+	DbHandle     *pgxpool.Pool
+	Logger       *slog.Logger
 	HeapSnapshot *bytes.Buffer
 }
 
