@@ -188,6 +188,8 @@ type HttpServer struct {
 	TimeoutWrite int `json:"timeout_write"`
 	// TimeoutIdle is the amount of seconds to hold an idle connection.
 	TimeoutIdle int `json:"timeout_idle"`
+	// StaticDir is an optional filepath for a directory offering static files.
+	StaticDir string `json:"static_dir"`
 	// SecretCA is an HTTP endpoint on an Openbao server holding an intermediate
 	// CA.
 	SecretCA string `json:"secret_ca"`

@@ -58,6 +58,7 @@
             "bypass": [],
             "domains": []
         },
+        "static_dir": "./ui/static/",
         "port": "8443",
         "timeout_read": 5,
         "timeout_write": 10,

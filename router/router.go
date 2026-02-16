@@ -16,6 +16,13 @@ func NewRouter(cfg *config.Config, b Gatherer) http.Handler {
 	health := setupHealthChecks(cfg, b.GetBackbone())
 	mux := http.NewServeMux()
 
+	// Create a fileserver to offer static files.
+	if cfg.HttpServer.StaticDir != "" {
+		staticDir := http.Dir(cfg.HttpServer.StaticDir)
+		fileServer := http.FileServer(staticDir)
+		mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	}
+
 	// Add health check.
 	addOperationalRoutes(mux, health, b.GetLogger())
 

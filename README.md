@@ -24,6 +24,7 @@ with the following:
     - TLS config as server
     - TLS config as client
     - Optional rate limiter
+    - Optional static files
 5. Health evaluations.
 6. Logging level.
 7. Toggling of metrics.
