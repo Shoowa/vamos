@@ -154,3 +154,27 @@ func (sk *SkeletonKey) ConfigureTLSwithCA(cfg *config.HttpServer) (*tls.Config, 
 		RootCAs: certPool,
 	}, nil
 }
+
+// LogicalRead expects an Openbao endpoint to GET.
+func (sk *SkeletonKey) LogicalRead(secretPath string) (*openbao.Secret, error) {
+	logicalClient := sk.Openbao.Logical()
+	secret, secretErr := logicalClient.Read(secretPath)
+	if secretErr != nil {
+		return nil, secretErr
+	}
+
+	return secret, nil
+}
+
+type payload map[string]any
+
+// LogicalWrite expects an Openbao endpoint and a map of data to PUT.
+func (sk *SkeletonKey) LogicalWrite(path string, data payload) (*openbao.Secret, error) {
+	logicalClient := sk.Openbao.Logical()
+	secret, secretErr := logicalClient.Write(path, data)
+	if secretErr != nil {
+		return nil, secretErr
+	}
+
+	return secret, nil
+}
