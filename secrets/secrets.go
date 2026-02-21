@@ -295,3 +295,29 @@ func (sk *SkeletonKey) OTPcreateKey(data OtpPayload) (*OtpKey, error) {
 
 	return key, nil
 }
+
+// OTPaddKey expects an OtpPayload with an existing Key. When it succeeds,
+// nothing is returned. The key will reside on Openbao. This is useful for
+// adding existing TOTP Keys to a blank Openbao TOTP Engine.
+func (sk *SkeletonKey) OTPaddKey(data OtpPayload) error {
+	if data.Generate == true {
+		return errors.New("Disable generation when trying to add existing TOTP key.")
+	}
+
+	if data.Key == "" {
+		return errors.New("Missing TOTP key.")
+	}
+
+	fullPath := data.Path + data.Name
+	info := payload{
+		"generate": data.Generate,
+		"key":      data.Key,
+	}
+
+	_, writeErr := sk.LogicalWrite(fullPath, info)
+	if writeErr != nil {
+		return writeErr
+	}
+
+	return nil
+}
