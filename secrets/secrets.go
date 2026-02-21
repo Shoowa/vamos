@@ -321,3 +321,41 @@ func (sk *SkeletonKey) OTPaddKey(data OtpPayload) error {
 
 	return nil
 }
+
+// OtpCode prepares a request to validate a TOTP Code.
+type OtpCode struct {
+	// Path is the beginning of the URL request to the TOTP Engine. This is
+	// configurable, because some Openbao servers might namespace a TOTP path.
+	Path string
+	// Name will name a key, and is part of the URL path.
+	Name string
+	// Code is a six-character string.
+	Code string
+}
+
+func (sk *SkeletonKey) OTPdraftCode(name string, code string) OtpCode {
+	return OtpCode{
+		Path: "totp/code/",
+		Name: name,
+		Code: code,
+	}
+}
+
+func (sk *SkeletonKey) OTPverifyCode(data OtpCode) (bool, error) {
+	fullPath := data.Path + data.Name
+	info := payload{
+		"code": data.Code,
+	}
+
+	secret, secretErr := sk.LogicalWrite(fullPath, info)
+	if secretErr != nil {
+		return false, secretErr
+	}
+
+	valid, ok := secret.Data["valid"].(bool)
+	if !ok {
+		return false, errors.New("Type assertion failed on the field VALID.")
+	}
+
+	return valid, nil
+}
