@@ -359,3 +359,47 @@ func (sk *SkeletonKey) OTPverifyCode(data OtpCode) (bool, error) {
 
 	return valid, nil
 }
+
+// HashPayload prepares a request to the Openbao Transit Engine to hash a string.
+type HashPayload struct {
+	// Path is the beginning of a URL request to the Transit Engine.
+	Path string
+	// Algo selects a hashing algorithm offered by the Transit Engine.
+	Algo string
+	// Input is the value that will be hashed by Openbao.
+	Input string
+	// Format determiones whether the output will be encoded as Hex or Base64.
+	Format string
+}
+
+// HashDraftPayload assembles a sanely configured payload.
+func (sk *SkeletonKey) HashDraftPayload(input string) HashPayload {
+	inputBase64 := base64.StdEncoding.EncodeToString([]byte(input))
+	return HashPayload{
+		Path:   "transit/hash/",
+		Algo:   "sha2-256",
+		Input:  inputBase64,
+		Format: "base64",
+	}
+}
+
+// Hash transmits data to the Openbao Transit Engine for hashing and returns a string.
+func (sk *SkeletonKey) Hash(data HashPayload) (string, error) {
+	fullPath := data.Path + data.Algo
+	info := payload{
+		"input":  data.Input,
+		"format": data.Format,
+	}
+
+	secret, secretErr := sk.LogicalWrite(fullPath, info)
+	if secretErr != nil {
+		return "", secretErr
+	}
+
+	digest, ok := secret.Data["sum"].(string)
+	if !ok {
+		return "", errors.New("Type assertion failed on the field SUM.")
+	}
+
+	return digest, nil
+}
