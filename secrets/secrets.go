@@ -403,3 +403,46 @@ func (sk *SkeletonKey) Hash(data HashPayload) (string, error) {
 
 	return digest, nil
 }
+
+// TokenPayload prepares a request to the Openbao Transit Engine to generate random bytes.
+type TokenPayload struct {
+	// Path is the beginning of a URL request to the Transit Engine.
+	Path string
+	// Bytes is the amount of bytes desired.
+	Bytes int
+	// Format determines whether the output will be encoded as Hex or Base64.
+	Format string
+	// Source can be either "platform" or "all"
+	Source string
+}
+
+// DraftTokenPayload assembles a sanely configured payload for the Openbao Transit Engine.
+func (sk *SkeletonKey) DraftTokenPayload() TokenPayload {
+	return TokenPayload{
+		Path: "transit/random/",
+		Bytes: 32,
+		Format: "base64",
+		Source: "platform/",
+	}
+}
+
+// CreateToken transmits data to the Openbao Transit Engine and returns a random token.
+func (sk *SkeletonKey) CreateToken(data TokenPayload) (string, error) {
+	fullPath := data.Path + data.Source
+	info := payload{
+		"bytes": data.Bytes,
+		"format": data.Format,
+	}
+
+	secret, secretErr := sk.LogicalWrite(fullPath, info)
+	if secretErr != nil {
+		return "", secretErr
+	}
+
+	token, ok := secret.Data["random_bytes"].(string)
+	if !ok {
+		return "", errors.New("Type assertion failed on the field RANDOM_BYTES")
+	}
+
+	return token, nil
+}
