@@ -1,16 +1,19 @@
 [Unit]
 Description=Add a credential to OpenBao
-DefaultDependencies=no
+Requires=After=dev_openbao.service
 
 [Service]
 Type=oneshot
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=add-pw-to-openbao
 Restart=on-failure
 RestartSec=5
 RemainAfterExit=yes
 ExecStart=/usr/bin/sleep 5
 ExecStart=/usr/bin/curl -H "X-Vault-Token: token" \
     -H "Content-Type: application/json" \
-    --request POST --data '{"data": {"password": "OpenBao123"}}' \
+    --request POST --data '{"data": {"password": "password"}}' \
     http://localhost:8200/v1/secret/data/dev-postgres-test
 ExecStart=/usr/bin/curl -H "X-Vault-Token: token" \
     -H "Content-Type: application/json" \

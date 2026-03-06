@@ -15,4 +15,4 @@ Restart=on-failure
 RestartSec=10
 
 [Install]
-RequiredBy=queue.target
+RequiredBy=multi-user.target

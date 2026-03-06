@@ -1,11 +1,8 @@
 [Unit]
-Description=Launch an open source secrets warehouse.
-DefaultDependencies=no
-Before=openbao_add_pw.service openbao_add_pki.service
-Requires=openbao_add_pw.service openbao_add_pki.service
+Description=Launch the Openbao server to store secrets.
 
 [Container]
-Image=quay.io/openbao/openbao:2.3
+Image=quay.io/openbao/openbao:2.5
 ContainerName=openbao
 Environment=BAO_DEV_ROOT_TOKEN_ID="token"
 PublishPort=8200:8200
@@ -18,4 +15,4 @@ Volume=/data/ca/:/pki
 Restart=always
 
 [Install]
-RequiredBy=secrets.target
+WantedBy=multi-user.target

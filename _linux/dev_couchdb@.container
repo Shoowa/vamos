@@ -17,4 +17,4 @@ Restart=on-failure
 RestartSec=10
 
 [Install]
-RequiredBy=databases.target
+RequiredBy=multi-user.target

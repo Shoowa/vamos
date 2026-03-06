@@ -1,9 +1,9 @@
 [Unit]
-Description=Launch Postgres 18 with native UUIDv7
+Description=Launch Postgres 18 with UUIDv7 & PostGIS
 
 [Container]
-Image=docker.io/library/postgres:18.3-alpine3.23
-ContainerName=postgres
+Image=dev-gis-postgres18.build
+ContainerName=geo_postgres
 Environment=POSTGRES_PASSWORD=password
 Environment=POSTGRES_USERNAME=postgres
 Environment=POSTGRES_HOST_AUTH_METHOD=trust
@@ -17,4 +17,4 @@ Restart=on-failure
 RestartSec=10
 
 [Install]
-RequiredBy=mult-user.target
+WantedBy=multi-user.target

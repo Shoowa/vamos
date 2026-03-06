@@ -1,7 +1,0 @@
-[Unit]
-Description=A group of queues.
-Requires=nats.service
-Before=nats.service
-
-[Install]
-RequiredBy=basic.target

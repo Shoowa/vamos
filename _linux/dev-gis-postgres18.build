@@ -1,0 +1,8 @@
+[Unit]
+Description=Build Postgres 18 with UUIDv7 & PostGIS.
+
+[Build]
+ImageTag=localhost/geodb
+SetWorkingDirectory=/data/setup/
+Arch=arm64
+File=/data/setup/postgres_gis.Containerfile

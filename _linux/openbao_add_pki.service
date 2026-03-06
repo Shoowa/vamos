@@ -1,9 +1,12 @@
 [Unit]
 Description=Add certificates and keys to OpenBao
-DefaultDependencies=no
+Requires=After=dev_openbao.service
 
 [Service]
 Type=oneshot
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=add-pki-to-openbao
 Restart=on-failure
 RestartSec=5
 RemainAfterExit=yes
