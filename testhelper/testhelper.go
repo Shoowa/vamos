@@ -87,6 +87,22 @@ func NotEqual[T any](t *testing.T, actual, expectation T) {
 	}
 }
 
+func Nil(t *testing.T, actual any) {
+	t.Helper()
+
+	if !isNil(actual) {
+		t.Errorf("actual: %v; expectation: NIL", actual)
+	}
+}
+
+func NotNil(t *testing.T, actual any) {
+	t.Helper()
+
+	if isNil(actual) {
+		t.Errorf("actual: NIL; expectation: NOT NIL")
+	}
+}
+
 // Change_to_project_root repositions a test executable's starting point so it
 // can find the config file.
 func Change_to_project_root() {
