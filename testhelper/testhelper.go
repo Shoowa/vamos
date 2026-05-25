@@ -44,13 +44,39 @@ func Ok(t *testing.T, err error) {
 	}
 }
 
-// equals fails the test if exp is not equal to act.
-func Equals(tb testing.TB, exp, act any) {
-	if !reflect.DeepEqual(exp, act) {
-		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
-		tb.FailNow()
+func Equal[T any](t *testing.T, actual, expectation T) {
+	t.Helper()
+
+	if !isEqual(actual, expectation) {
+		t.Errorf("actual: %v; expectation: %v", actual, expectation)
 	}
+}
+
+func isEqual[T any](actual, expectation T) bool {
+	// Are both values actually nil?
+	if isNil(actual) && isNil(expectation) {
+		return true
+	}
+
+	// Are they truly the same?
+	return reflect.DeepEqual(actual, expectation)
+}
+
+func isNil(v any) bool {
+	if v == nil {
+		return true
+	}
+
+	// Inspect underlying type of v, and return true when it is nullable, e.g.,
+	// pointer, slice, map, with a value of nil.
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice, reflect.UnsafePointer:
+		return rv.IsNil()
+	}
+
+	// Other types like bool, int, string are never nil.
+	return false
 }
 
 // Change_to_project_root repositions a test executable's starting point so it
