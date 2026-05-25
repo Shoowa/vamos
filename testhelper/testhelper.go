@@ -3,7 +3,7 @@ package testhelper
 import (
 	"bytes"
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +40,15 @@ func Ok(t *testing.T, err error) {
 
 	if err != nil {
 		t.Errorf("Error detected: %s", err)
+	}
+}
+
+// DesiredError fails the test when an expected error is missing.
+func DesiredError(t *testing.T, err error, actual any) {
+	t.Helper()
+
+	if err == nil {
+		t.Errorf("expected an error; actual: %#v", actual)
 	}
 }
 
@@ -100,6 +108,27 @@ func NotNil(t *testing.T, actual any) {
 
 	if isNil(actual) {
 		t.Errorf("actual: NIL; expectation: NOT NIL")
+	}
+}
+
+func ErrorIs(t *testing.T, actual, expectation error) {
+	t.Helper()
+
+	if !errors.Is(actual, expectation) {
+		t.Errorf("actual: %v; expectation: %v", actual, expectation)
+	}
+}
+
+func ErrorAs(t *testing.T, actual error, target any) {
+	t.Helper()
+
+	if actual == nil {
+		t.Errorf("actual: NIL; expectation: assignable to: %T", target)
+		return
+	}
+
+	if !errors.As(actual, target) {
+		t.Errorf("actual: %v; expectation assignable to: %T", actual, target)
 	}
 }
 
