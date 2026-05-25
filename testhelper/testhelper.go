@@ -28,12 +28,11 @@ const (
 	TIMEOUT = time.Second * 1
 )
 
-// assert fails the test if the condition is false.
-func Assert(tb testing.TB, condition bool, msg string, v ...any) {
-	if !condition {
-		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d: "+msg+"\033[39m\n\n", append([]any{filepath.Base(file), line}, v...)...)
-		tb.FailNow()
+func True(t *testing.T, actual bool) {
+	t.Helper()
+
+	if !actual {
+		t.Errorf("actual: %v; expectation: TRUE", actual)
 	}
 }
 
