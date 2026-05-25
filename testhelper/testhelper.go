@@ -79,6 +79,14 @@ func isNil(v any) bool {
 	return false
 }
 
+func NotEqual[T any](t *testing.T, actual, expectation T) {
+	t.Helper()
+
+	if isEqual(actual, expectation) {
+		t.Errorf("actual: %v; expected values to be different", actual)
+	}
+}
+
 // Change_to_project_root repositions a test executable's starting point so it
 // can find the config file.
 func Change_to_project_root() {
