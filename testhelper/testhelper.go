@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	TIMEOUT = time.Second * 1
+	TIMEOUT_REQ = time.Second * 1
 )
 
 func True(t *testing.T, actual bool) {
@@ -156,7 +156,7 @@ func CreateTestTable(timer context.Context) error {
 	}
 
 	// Set timer for opening a connection.
-	openTimer, cancelOpen := context.WithTimeout(timer, TIMEOUT)
+	openTimer, cancelOpen := context.WithTimeout(timer, TIMEOUT_REQ)
 	defer cancelOpen()
 
 	// Use a single connection. This isn't a pool.
@@ -166,7 +166,7 @@ func CreateTestTable(timer context.Context) error {
 	}
 
 	// Set timer for closing the connection.
-	closeTimer, cancelClose := context.WithTimeout(timer, TIMEOUT)
+	closeTimer, cancelClose := context.WithTimeout(timer, TIMEOUT_REQ)
 	defer cancelClose()
 	defer db.Close(closeTimer)
 
