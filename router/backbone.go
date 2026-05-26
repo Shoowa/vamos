@@ -27,7 +27,6 @@ const (
 type Gatherer interface {
 	GetLogger() *slog.Logger
 	GetBackbone() *Backbone
-	AddBackbone(*Backbone)
 	GetEndpoints() []Endpoint
 }
 
@@ -111,9 +110,6 @@ func (b *Backbone) GetLogger() *slog.Logger {
 func (b *Backbone) GetBackbone() *Backbone {
 	return b
 }
-
-// AddBackbone is an awkward method to satisfy the Gatherer interface.
-func (b *Backbone) AddBackbone(*Backbone) {}
 
 // GetEndpoints is a convenient method to add a list of HTTP methods and
 // http.Handlers to a router.
