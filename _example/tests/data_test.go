@@ -15,23 +15,37 @@ import (
 	. "github.com/Shoowa/vamos/testhelper"
 )
 
+// Define common values, like HTTP Headers and common data.
 const (
 	TIMEOUT_TEST = time.Second * 1
 	TIMEOUT_READ = time.Second * 3
 	AUTHOR       = "Chaucer"
 )
 
-func TestMain(m *testing.M) {
-	os.Setenv("APP_ENV", "DEV")
-	Change_to_project_root()
-	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
+// Define a package variable that can be used during the setup of the test
+// suite, and in each test.
+var (
+	testDB *DbHandle
+)
 
-	// Setup common resource for all integration tests in only this package.
-	dbErr := CreateTestTable(timer)
-	if dbErr != nil {
-		panic(dbErr)
-	}
+func TestMain(m *testing.M) {
+	// Enable reading the configuration file.
+	os.Setenv("APP_ENV", "DEV")
+
+	// Enable reading credentials from the Openbao server.
+	os.Setenv("OPENBAO_TOKEN", "token")
+
+	// Point the test-executable to the configuration file.
+	Change_to_project_root()
+
+	// Connect to the local database before any tests run. Notice this uses the
+	// package variable defined above. It will be re-used in the tests.
+	testDB = ConnectDB()
+	testDB.SetTimer(2)
+
+	// Erase e-vars, so that test runs can change it.
 	os.Unsetenv("APP_ENV")
+	os.Unsetenv("OPENBAO_TOKEN")
 
 	code := m.Run()
 	os.Exit(code)
@@ -51,6 +65,7 @@ func Test_ConnectDB(t *testing.T) {
 func Test_ReadingData(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
+	testDB.WriteAndDeleteData(t, "add_table_data.sql", "erase_table_data.sql")
 
 	cfg := config.Read()
 	db, _ := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
@@ -84,7 +99,7 @@ func readOneAuthor(t *testing.T, q *first.Queries, ctx context.Context) {
 	result, err := q.GetAuthor(timer, AUTHOR)
 
 	Ok(t, err)
-	Equals(t, result.Name, AUTHOR)
+	Equal(t, result.Name, AUTHOR)
 }
 
 func readManyAuthors(t *testing.T, q *first.Queries, ctx context.Context) {
@@ -94,7 +109,7 @@ func readManyAuthors(t *testing.T, q *first.Queries, ctx context.Context) {
 	result, err := q.ListAuthors(timer)
 
 	Ok(t, err)
-	Equals(t, 5, len(result))
+	Equal(t, 5, len(result))
 }
 
 func readMostProductiveAuthor(t *testing.T, q *first.Queries, ctx context.Context) {
@@ -104,7 +119,7 @@ func readMostProductiveAuthor(t *testing.T, q *first.Queries, ctx context.Contex
 	result, err := q.MostProductiveAuthor(timer)
 
 	Ok(t, err)
-	Equals(t, AUTHOR, result)
+	Equal(t, AUTHOR, result)
 }
 
 func readMostProductiveAuthorAndBook(t *testing.T, q *first.Queries, ctx context.Context) {
@@ -114,6 +129,6 @@ func readMostProductiveAuthorAndBook(t *testing.T, q *first.Queries, ctx context
 	result, err := q.MostProductiveAuthorAndBook(timer)
 
 	Ok(t, err)
-	Equals(t, AUTHOR, result.Author.Name)
-	Equals(t, "The Canterbury Tales", result.Book.Title)
+	Equal(t, AUTHOR, result.Author.Name)
+	Equal(t, "The Canterbury Tales", result.Book.Title)
 }

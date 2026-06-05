@@ -946,21 +946,28 @@ import (
 )
 
 func TestMain(m *testing.M) {
-    // Direct app to read dev.json
+	// Enable reading the configuration file.
 	os.Setenv("APP_ENV", "DEV")
 
-    // Reposition root of test executable.
-	testhelper.Change_to_project_root()
+	// Enable reading credentials from the Openbao server.
+	os.Setenv("OPENBAO_TOKEN", "token")
 
-	timer, _ := context.WithTimeout(context.Background(), time.Second*5)
-	// Setup common resource for all integration tests in only this package.
-	dbErr := testhelper.CreateTestTable(timer)
-	if dbErr != nil {
-		panic(dbErr)
-	}
+	// Point the test-executable to the configuration file.
+	Change_to_project_root()
+
+	// Connect to the local database before any tests run. Notice this uses the
+	// package variable defined above. It will be re-used in the tests.
+	testDB = ConnectDB()
+	testDB.SetTimer(2)
+
+	// Erase e-vars, so that test runs can change it.
 	os.Unsetenv("APP_ENV")
+	os.Unsetenv("OPENBAO_TOKEN")
 
 	code := m.Run()
+
+    // After the tests run, add code here.
+
 	os.Exit(code)
 }
 ```
@@ -987,6 +994,7 @@ pool.
 func Test_ReadingData(t *testing.T) {
 	t.Setenv("APP_ENV", "DEV")
 	t.Setenv("OPENBAO_TOKEN", "token")
+	testDB.WriteAndDeleteData(t, "add_table_data.sql", "erase_table_data.sql")
 
 	cfg := config.Read()
 	db, _ := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)

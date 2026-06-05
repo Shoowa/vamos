@@ -40,11 +40,6 @@ func (d *Deps) GetEndpoints() []router.Endpoint {
 	}
 }
 
-// CreateEmptyDeps is useful for creating the backboneWrapper in tests.
-func CreateEmptyDeps() *Deps {
-	return &Deps{nil, nil}
-}
-
 // A simple http.Handler
 func (d *Deps) hndlr1(w http.ResponseWriter, req *http.Request) {
 	d.Logger.Info("Test1, test1, test1...")
