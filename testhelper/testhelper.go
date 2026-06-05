@@ -19,6 +19,7 @@ import (
 	"github.com/Shoowa/vamos/config"
 	"github.com/Shoowa/vamos/data/rdbms"
 	"github.com/Shoowa/vamos/router"
+	"github.com/Shoowa/vamos/secrets"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -146,40 +147,118 @@ func Change_to_project_root() {
 	}
 }
 
-// CreateTestTable writes data into a development Postgres server.
-func CreateTestTable(timer context.Context) error {
+// DbHandle is a convenient struct that represents a single connection to a
+// Postgres server. It includes required data for opening and closing that
+// connection.
+type DbHandle struct {
+	*pgx.Conn
+	timer time.Duration
+	ctx   context.Context
+}
+
+// SetTimer defines the time that a handle will wait to execute a SQL statement.
+func (db *DbHandle) SetTimer(seconds int) {
+	db.timer = time.Second * time.Duration(seconds)
+}
+
+// CloseConnection simply terminates a TCP connection to a Postgres server.
+func (db *DbHandle) CloseConnection() {
+	closeTimer, cancelClose := context.WithTimeout(db.ctx, db.timer)
+	defer cancelClose()
+	db.Close(closeTimer)
+}
+
+// ConnectDB creates a Database handle, and is meant to be executed inside the
+// TestMain func. It provides a single connection to a Postgres server
+// independent of the application's connect pool. This connection can be re-used
+// in multiple tests. This connection can be closed after the test runs inside
+// the TestMain func.
+func ConnectDB() *DbHandle {
 	cfg := config.Read()
 	dbConfig := rdbms.WhichDB(cfg, cfg.Test.DbPosition)
 	credString, credErr := rdbms.Credentials(dbConfig)
 	if credErr != nil {
-		return credErr
+		panic(credErr)
+	}
+
+	connConfig, configErr := pgx.ParseConfig(credString)
+	if configErr != nil {
+		panic(configErr)
+	}
+
+	secReader := new(secrets.SkeletonKey)
+	secReader.Create(cfg)
+	pw, pwErr := secReader.ReadPathAndKey(dbConfig.Secret, dbConfig.SecretKey)
+	if pwErr != nil {
+		panic(pwErr)
+	}
+
+	connConfig.Password = pw
+
+	// Add TLS config to single Postgres connection.
+	if dbConfig.Sslmode == true {
+		tlsInfo, tlsErr := secReader.ConfigureTLSwithCA(cfg.HttpServer)
+		if tlsErr != nil {
+			panic(tlsErr)
+		}
+		tlsInfo.ServerName = dbConfig.Host
+		connConfig.Config.TLSConfig = tlsInfo
 	}
 
 	// Set timer for opening a connection.
-	openTimer, cancelOpen := context.WithTimeout(timer, TIMEOUT_REQ)
+	ctx := context.Background()
+	openTimer, cancelOpen := context.WithTimeout(ctx, TIMEOUT_REQ)
 	defer cancelOpen()
 
 	// Use a single connection. This isn't a pool.
-	db, connErr := pgx.Connect(openTimer, credString)
+	db, connErr := pgx.ConnectConfig(openTimer, connConfig)
 	if connErr != nil {
-		return connErr
+		panic(connErr)
 	}
 
-	// Set timer for closing the connection.
-	closeTimer, cancelClose := context.WithTimeout(timer, TIMEOUT_REQ)
-	defer cancelClose()
-	defer db.Close(closeTimer)
+	return &DbHandle{
+		db,
+		time.Second * time.Duration(1),
+		ctx,
+	}
+}
+
+// WriteAndDeleteData inserts and erases data from Postgres. Useful for setting
+// up a test.
+func (db *DbHandle) WriteAndDeleteData(t *testing.T, fileWrite, fileDelete string) {
+	fakeData, fileErr := os.ReadFile(fileWrite)
+	if fileErr != nil {
+		t.Fatal(fileErr)
+	}
 
 	// Set timer for issuing SQL command that writes data into the table.
-	cmdTimer, cancelCommand := context.WithTimeout(timer, time.Second*3)
+	cmdTimer, cancelCommand := context.WithTimeout(db.ctx, db.timer)
 	defer cancelCommand()
 
-	fakeData, fileErr := os.ReadFile(cfg.Test.FakeData)
-	if fileErr != nil {
-		return fileErr
+	// Write fake data to Postgres.
+	_, writeErr := db.Exec(cmdTimer, string(fakeData))
+	if writeErr != nil {
+		closeTimer, cancelClose := context.WithTimeout(db.ctx, db.timer)
+		defer cancelClose()
+		db.Close(closeTimer)
+		t.Fatal(writeErr)
 	}
-	db.Exec(cmdTimer, string(fakeData))
-	return nil
+
+	// Ensure deletion occurs.
+	t.Cleanup(func() {
+		eraseData, fileErr := os.ReadFile(fileDelete)
+		if fileErr != nil {
+			t.Fatal(fileErr)
+		}
+
+		// Erase data from Postgres.
+		cmdTimer, cancelCommand := context.WithTimeout(db.ctx, db.timer)
+		defer cancelCommand()
+		_, delErr := db.Exec(cmdTimer, string(eraseData))
+		if delErr != nil {
+			t.Fatal(delErr)
+		}
+	})
 }
 
 type testServer struct {
