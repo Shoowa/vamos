@@ -1,4 +1,6 @@
 {
+  "log_requests_level": "trace",
+  "log_level": "trace",
   "ui": false,
 
   "api_addr":     "https://0.0.0.0:8233",
@@ -14,6 +16,57 @@
         "tls_min_version": "tls13",
       }
     }
-  ]
+  ],
 
+  "initialize": [
+    {
+      "prepare-dev-env": {
+        "request": [
+          {
+            "enable-transit-engine": {
+              "operation": "create",
+              "path": "sys/mounts/transit",
+              "token": "token",
+              "data": {
+                "type": "transit",
+                "description": "hashesAndTokens",
+                "local": true,
+                "seal_wrap": false,
+                "external_entropy_access": false,
+                "config": {
+                  "default_lease_ttl": "0s",
+                  "max_lease_ttl": "0s",
+                  "force_no_cache": false
+                }
+              }
+            }
+          },
+          {
+            "add-postgres-password": {
+              "operation": "create",
+              "path": "secret/data/dev-postgres-test",
+              "token": "token",
+              "data": {
+                "data": {
+                  "password": "password"
+                }
+              }
+            }
+          },
+          {
+            "add-redis-password": {
+              "operation": "create",
+              "path": "secret/data/dev-redis-test",
+              "token": "token",
+              "data": {
+                "data": {
+                  "password": "redis4life"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
 }
