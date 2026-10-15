@@ -12,6 +12,10 @@ import (
 	"github.com/Shoowa/vamos/config"
 )
 
+var (
+	ErrAssertType = errors.New("Assertion of Type failed.")
+)
+
 // SkeletonKey wrap around an Openbao client. Perhaps it can wrap around other
 // clients that read different storage.
 type SkeletonKey struct {
@@ -68,7 +72,7 @@ func (sk *SkeletonKey) ReadPathAndKey(secretPath, key string) (string, error) {
 
 	v, ok := secret.Data[key].(string)
 	if !ok {
-		return "", errors.New("Type assertion failed on the value.")
+		return "", ErrAssertType
 	}
 	return v, nil
 }
@@ -280,12 +284,12 @@ func (sk *SkeletonKey) OTPcreateKey(data OtpPayload) (*OtpKey, error) {
 
 	barcode, ok := secret.Data["barcode"].(string)
 	if !ok {
-		return nil, errors.New("Type assertion failed on the barcode.")
+		return nil, ErrAssertType
 	}
 
 	url, ok := secret.Data["url"].(string)
 	if !ok {
-		return nil, errors.New("Type assertion failed on the URL.")
+		return nil, ErrAssertType
 	}
 
 	key := &OtpKey{
