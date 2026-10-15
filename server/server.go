@@ -61,11 +61,7 @@ func gracefulShutdown(s *http.Server) error {
 	quitCtx, quit := context.WithTimeout(context.Background(), GRACE_PERIOD)
 	defer quit()
 
-	err := s.Shutdown(quitCtx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.Shutdown(quitCtx)
 }
 
 // catchSigTerm creates a buffered message queue awaiting an OS signal. The Main
