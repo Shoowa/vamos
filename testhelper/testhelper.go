@@ -1,14 +1,8 @@
 package testhelper
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/http/cookiejar"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,7 +12,6 @@ import (
 
 	"github.com/Shoowa/vamos/config"
 	"github.com/Shoowa/vamos/data/rdbms"
-	"github.com/Shoowa/vamos/router"
 	"github.com/Shoowa/vamos/secrets"
 
 	"github.com/jackc/pgx/v5"
@@ -259,62 +252,4 @@ func (db *DbHandle) WriteAndDeleteData(t *testing.T, fileWrite, fileDelete strin
 			t.Fatal(delErr)
 		}
 	})
-}
-
-type testServer struct {
-	*httptest.Server
-}
-
-// CreateTestServer conveniently creates a configured server for testing routes.
-func CreateTestServer(t *testing.T) *testServer {
-	cfg := config.Read()
-	logger := slog.New(slog.DiscardHandler)
-
-	db1, db1Err := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
-	if db1Err != nil {
-		logger.Error(db1Err.Error())
-		panic(db1Err)
-	}
-
-	backbone := router.NewBackbone(
-		router.WithLogger(logger),
-		router.WithDbHandle(db1),
-	)
-
-	router := router.NewRouter(cfg, backbone)
-	s := httptest.NewServer(router)
-
-	jar, jErr := cookiejar.New(nil)
-	if jErr != nil {
-		t.Fatal(jErr)
-	}
-
-	// Enable saving response cookies for subsequent requests.
-	s.Client().Jar = jar
-
-	// Disable redirect to see the first response.
-	s.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	return &testServer{s}
-}
-
-// Get is a method of the testServer that conveniently creates a client and
-// reads a response and reports the HTTP status, Headers, and body.
-func (tsrv *testServer) Get(t *testing.T, path string) (int, http.Header, string) {
-	client := tsrv.Client()
-	r, rErr := client.Get(tsrv.URL + path)
-	if rErr != nil {
-		t.Fatal(rErr)
-	}
-
-	defer r.Body.Close()
-	body, bodyErr := io.ReadAll(r.Body)
-	if bodyErr != nil {
-		t.Fatal(bodyErr)
-	}
-
-	body = bytes.TrimSpace(body)
-	return r.StatusCode, r.Header, string(body)
 }
