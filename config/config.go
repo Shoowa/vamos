@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // AppVersion can be defined during the build command. It will appear in logs.
@@ -152,15 +153,17 @@ type TlsSecret struct {
 }
 
 // RateLimiter configures a token bucket rate limiter for all routes. Each token
-// represents a single HTTP request. Every second, the "average" amount of
-// tokens is added to the bucket. And the router is allowed to spend the "burst"
-// amount per second.
+// represents a single HTTP request. Every window, the  amount of tokens is
+// added to the bucket. And the router is allowed to spend the "burst" amount
+// per window.
 type RateLimiter struct {
 	// Active toggles the global rate limiter on and off.
 	Active bool `json:"active"`
-	// Avergae is the amount of tokens refilled per second.
-	Average float64 `json:"average"`
-	// Burst is the maximum amount of tokens spent per second.
+	// Window is the amount of seconds that tokens can be consumed.
+	Window time.Duration `json:"window"`
+	// Amount is the number of tokens consumed during the window.
+	Amount time.Duration `json:"amount"`
+	// Burst is the maximum amount of tokens spent during window.
 	Burst int `json:"burst"`
 }
 

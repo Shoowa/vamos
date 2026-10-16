@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Shoowa/vamos/config"
 
@@ -9,8 +10,9 @@ import (
 )
 
 func CreateRateLimiter(cfg *config.RateLimiter) *rate.Limiter {
-	avg := rate.Limit(cfg.Average)
-	return rate.NewLimiter(avg, cfg.Burst)
+	window := time.Second / cfg.Window
+	limit := rate.Every(window / cfg.Amount)
+	return rate.NewLimiter(limit, cfg.Burst)
 }
 
 func Limit(limiter *rate.Limiter, next http.Handler) http.Handler {
