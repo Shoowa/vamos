@@ -43,8 +43,7 @@ type Backbone struct {
 }
 
 // NewBackbone employs the Options pattern to selectively configure the Backbone
-// struct. It also adds a Health record and initializes it. It also adds a
-// buffer for receiving runtime profile data.
+// struct. It also adds a buffer for receiving runtime profile data.
 func NewBackbone(options ...Option) *Backbone {
 	b := new(Backbone)
 	for _, opt := range options {
