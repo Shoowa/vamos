@@ -95,3 +95,25 @@ func createHTTPTransport(cfg *config.Config) *http.Transport {
 
 	return transporter
 }
+
+// CreateHTTPClient produces a client that can log requests, errors, and their
+// duration.
+func CreateHTTPClient(cfg *config.Config, logger *slog.Logger) *http.Client {
+	cfgLimit := cfg.Client.RateLimiter
+	window := rate.Every(time.Second / time.Duration(cfgLimit.Amount))
+	limiter := rate.NewLimiter(window, cfgLimit.Burst)
+
+	transporter := createHTTPTransport(cfg)
+	specialTransporter := &RecorderTransport{
+		Transport: transporter,
+		Control:   limiter,
+		Logger:    logger,
+	}
+
+	httpClient := &http.Client{
+		Transport: specialTransporter,
+		Timeout:   cfg.Client.TimeoutTotal * time.Second,
+	}
+
+	return httpClient
+}

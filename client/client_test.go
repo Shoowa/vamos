@@ -17,7 +17,7 @@ import (
 const GOOGLE = "http://www.google.com"
 
 var (
-	webclient *client.WebClient
+	webclient *http.Client
 	attempts  int
 )
 
