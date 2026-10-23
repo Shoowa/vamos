@@ -2,12 +2,54 @@ package client
 
 import (
 	"crypto/tls"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/Shoowa/vamos/config"
+	"golang.org/x/time/rate"
 )
+
+// RecorderTransport combines a custom http.Transport with a Logger and a Rate
+// Limiter, and amends the RoundTrip method to log the duration of a request and
+// any errors.
+type RecorderTransport struct {
+	Transport http.RoundTripper
+	Control   *rate.Limiter
+	Logger    *slog.Logger
+}
+
+// RoundTrip leverages the http.RoundTripper interface to add logging and rate
+// limiting to any request. Potential improvement: Add atomic counters to record
+// HTTP status codes. Also add a gauge to measure active TCP connections.
+func (rt *RecorderTransport) RoundTrip(req *http.Request) (response *http.Response, err error) {
+	// Abort request when tokens are depleted.
+	err = rt.Control.Wait(req.Context())
+	if err != nil {
+		return nil, err
+	}
+
+	// Record basic request data.
+	rt.Logger.Info("Request", "Method", req.Method, "URL", req.URL.String())
+
+	// Schedule the logging of the response and any errors after the func exits
+	// and before it returns.
+	begin := time.Now()
+	defer func() {
+		elapsed := time.Since(begin)
+		if err != nil {
+			rt.Logger.Error("Failed request", "Method", req.Method, "URL", req.URL.String(), "Elapsed", elapsed, "Error", err.Error())
+			return
+		}
+		if response.StatusCode != http.StatusOK {
+			rt.Logger.Info("Response", "Status", response.StatusCode, "Method", req.Method, "URL", req.URL.String(), "Elapsed", elapsed)
+		}
+	}()
+
+	response, err = rt.Transport.RoundTrip(req)
+	return response, err
+}
 
 func createHTTPTransport(cfg *config.Config) *http.Transport {
 	c := cfg.Client
