@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/tls"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -9,6 +10,10 @@ import (
 
 	"github.com/Shoowa/vamos/config"
 	"golang.org/x/time/rate"
+)
+
+const (
+	MAX_BODY_SLURP_SIZE = 2 << 10
 )
 
 // RecorderTransport combines a custom http.Transport with a Logger and a Rate
@@ -116,4 +121,12 @@ func CreateHTTPClient(cfg *config.Config, logger *slog.Logger) *http.Client {
 	}
 
 	return httpClient
+}
+
+// Drain will enable the http.Transport to re-use a TCP connection.
+func Drain(response *http.Response) {
+	if response.ContentLength == -1 || response.ContentLength <= MAX_BODY_SLURP_SIZE {
+		io.CopyN(io.Discard, response.Body, MAX_BODY_SLURP_SIZE)
+	}
+	response.Body.Close()
 }
