@@ -300,3 +300,36 @@ type HttpClient struct {
 	// RateLimiter uses the Token Bucket algo.
 	RateLimiter *RateLimiter `json:"rate_limiter"`
 }
+
+// UnmarshalJSON on a HttpClient struct provides a default set of values when
+// any fields are absent from the config file.
+func (wc *HttpClient) UnmarshalJSON(data []byte) error {
+	type Alias HttpClient
+	suggested := &Alias{
+		// TCP rules.
+		TimeoutTcpSetup:   5,
+		KeepAliveInterval: 15,
+
+		// Request rules.
+		TimeoutTls:        5,
+		TimeoutRespHeader: 10,
+		TimeoutTotal:      30,
+
+		// Connection pool rules.
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		MaxConnsPerHost:     100,
+		IdleConnTimeout:     90,
+
+		// Tolerated megabytes of response headers.
+		MaxResponseHeaderMegaBytes: 1,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*wc = HttpClient(*suggested)
+	return nil
+}
