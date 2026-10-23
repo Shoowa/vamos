@@ -61,6 +61,7 @@ type Config struct {
 	Test       *Test       `json:"test"`
 	Metrics    *Metrics    `json:"metrics"`
 	Cache      *Cache      `json:"cache"`
+	Client     *HttpClient `json:"client"`
 }
 
 // Logger expects debug to be enabled or disabled.
@@ -264,4 +265,38 @@ type Cache struct {
 	Secret string `json:"secret"`
 	// SecretKey is a Openbao JSON data field.
 	SecretKey string `json:"secret_key"`
+}
+
+// HttpClient configuration.
+type HttpClient struct {
+	// TimeoutTcpSetup: seconds to setup a TCP connection.
+	TimeoutTcpSetup time.Duration `json:"timeout_tcp_setup"`
+
+	// KeepAliveInterval: an interval of X seconds between probes.
+	KeepAliveInterval time.Duration `json:"keep_alive_interval"`
+
+	// TimeoutTls: amount of seconds to establish TCP handshake.
+	TimeoutTls time.Duration `json:"timeout_tls"`
+
+	// TimeoutRespHeader: the amount of seconds to wait for a server to begin
+	// responding. Crucial to define for a streaming endpoint.
+	TimeoutRespHeader time.Duration `json:"timeout_response_header"`
+
+	// TimeoutTotal: the limit on a HTTP request. Set to 0 when streaming.
+	TimeoutTotal time.Duration `json:"timeout_total"`
+
+	MaxIdleConns        int `json:"max_idle_conns"`
+	MaxIdleConnsPerHost int `json:"max_idle_conns_per_host"`
+	MaxConnsPerHost     int `json:"max_conns_per_host"`
+
+	// IdleConnTimeout is amount of seconds that un-used connections remain in
+	// the pool. Crucial to avoid tossing & rebuilding TCP connections for a
+	// frequently contacted upstream server.
+	IdleConnTimeout time.Duration `json:"idle_conn_timeout"`
+
+	// MaxResponseHeaderMegaBytes amount tolerated from a response header.
+	MaxResponseHeaderMegaBytes int64 `json:"max_response_header_mega_bytes"`
+
+	// RateLimiter uses the Token Bucket algo.
+	RateLimiter *RateLimiter `json:"rate_limiter"`
 }
