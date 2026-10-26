@@ -358,7 +358,7 @@ func (sk *SkeletonKey) OTPverifyCode(data OtpCode) (bool, error) {
 
 	valid, ok := secret.Data["valid"].(bool)
 	if !ok {
-		return false, errors.New("Type assertion failed on the field VALID.")
+		return false, ErrAssertType
 	}
 
 	return valid, nil
@@ -402,7 +402,7 @@ func (sk *SkeletonKey) Hash(data HashPayload) (string, error) {
 
 	digest, ok := secret.Data["sum"].(string)
 	if !ok {
-		return "", errors.New("Type assertion failed on the field SUM.")
+		return "", ErrAssertType
 	}
 
 	return digest, nil
@@ -445,7 +445,7 @@ func (sk *SkeletonKey) CreateToken(data TokenPayload) (string, error) {
 
 	token, ok := secret.Data["random_bytes"].(string)
 	if !ok {
-		return "", errors.New("Type assertion failed on the field RANDOM_BYTES")
+		return "", ErrAssertType
 	}
 
 	return token, nil
