@@ -213,6 +213,21 @@ type PreventCORF struct {
 	Bypass []string `json:"bypass"`
 }
 
+func (pc *PreventCORF) UnmarshalJSON(data []byte) error {
+	type alias PreventCORF
+	suggested := &alias{
+		Active: false,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*pc = PreventCORF(*suggested)
+	return nil
+}
+
 // HttpServer expects a CA, x509 cert, & key as a server. And a x509 cert & key
 // as a client for an internal network.
 type HttpServer struct {
