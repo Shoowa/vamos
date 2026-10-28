@@ -105,7 +105,7 @@ func createHTTPTransport(cfg *config.Config) *http.Transport {
 // duration.
 func CreateHTTPClient(cfg *config.Config, logger *slog.Logger) *http.Client {
 	cfgLimit := cfg.Client.RateLimiter
-	window := rate.Every(time.Second / time.Duration(cfgLimit.Amount))
+	window := rate.Every(time.Second / cfgLimit.Amount)
 	limiter := rate.NewLimiter(window, cfgLimit.Burst)
 
 	transporter := createHTTPTransport(cfg)
