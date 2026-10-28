@@ -234,14 +234,14 @@ type HttpServer struct {
 	Port string `json:"port"`
 	// TimeoutRead is the amount of seconds allowed to read an entire request,
 	// including the body.
-	TimeoutRead int `json:"timeout_read"`
+	TimeoutRead time.Duration `json:"timeout_read"`
 	// TimeoutHeaders: amount of seconds to read only the headers.
 	TimeoutHeaders time.Duration `json:"timeout_headers"`
 	// TimeoutWrite is the amount of seconds allowed to write an entire
 	// response, beginning from a TLS handshake to Time To First Byte.
-	TimeoutWrite int `json:"timeout_write"`
+	TimeoutWrite time.Duration `json:"timeout_write"`
 	// TimeoutIdle is the amount of seconds to hold an idle connection.
-	TimeoutIdle int `json:"timeout_idle"`
+	TimeoutIdle time.Duration `json:"timeout_idle"`
 	// StaticDir is an optional filepath for a directory offering static files.
 	StaticDir string `json:"static_dir"`
 	// SecretCA is an HTTP endpoint on an Openbao server holding an intermediate

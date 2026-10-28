@@ -35,9 +35,9 @@ func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate, s
 		Handler:      router,
 		ErrorLog:     slog.NewLogLogger(slogger.Handler(), slog.LevelError),
 		ReadHeaderTimeout: time.Second * cfg.HttpServer.TimeoutHeaders,
-		ReadTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutRead),
-		WriteTimeout: time.Second * time.Duration(cfg.HttpServer.TimeoutWrite),
-		IdleTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutIdle),
+		ReadTimeout:  time.Second * cfg.HttpServer.TimeoutRead,
+		WriteTimeout: time.Second * cfg.HttpServer.TimeoutWrite,
+		IdleTimeout:  time.Second * cfg.HttpServer.TimeoutIdle,
 		BaseContext:  func(lstnr net.Listener) context.Context { return base },
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS13,
