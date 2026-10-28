@@ -183,6 +183,24 @@ type RateLimiter struct {
 	Burst int `json:"burst"`
 }
 
+func (rl *RateLimiter) UnmarshalJSON(data []byte) error {
+	type alias RateLimiter
+	suggested := &alias{
+		Active: true,
+		Window: 1,   // one second
+		Amount: 100, // one hundred requests per second
+		Burst:  100,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*rl = RateLimiter(*suggested)
+	return nil
+}
+
 // PreventCORF configures an optional middleware that inspects requests from a
 // browser.
 type PreventCORF struct {
