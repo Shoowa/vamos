@@ -34,6 +34,7 @@ func NewServer(cfg *config.Config, router http.Handler, cert *tls.Certificate, s
 		Addr:         ":" + cfg.HttpServer.Port,
 		Handler:      router,
 		ErrorLog:     slog.NewLogLogger(slogger.Handler(), slog.LevelError),
+		ReadHeaderTimeout: time.Second * cfg.HttpServer.TimeoutHeaders,
 		ReadTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutRead),
 		WriteTimeout: time.Second * time.Duration(cfg.HttpServer.TimeoutWrite),
 		IdleTimeout:  time.Second * time.Duration(cfg.HttpServer.TimeoutIdle),

@@ -235,6 +235,8 @@ type HttpServer struct {
 	// TimeoutRead is the amount of seconds allowed to read an entire request,
 	// including the body.
 	TimeoutRead int `json:"timeout_read"`
+	// TimeoutHeaders: amount of seconds to read only the headers.
+	TimeoutHeaders time.Duration `json:"timeout_headers"`
 	// TimeoutWrite is the amount of seconds allowed to write an entire
 	// response, beginning from a TLS handshake to Time To First Byte.
 	TimeoutWrite int `json:"timeout_write"`
