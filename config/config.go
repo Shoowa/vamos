@@ -297,6 +297,25 @@ type Health struct {
 	RoutinesPerCore int `json:"routines_per_core"`
 }
 
+func (h *Health) UnmarshalJSON(data []byte) error {
+	type alias Health
+	suggested := &alias{
+		PingDbTimer:     60,
+		HeapTimer:       60,
+		HeapSize:        100,
+		RoutTimer:       60,
+		RoutinesPerCore: 100,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*h = Health(*suggested)
+	return nil
+}
+
 // Test points the test executables to the test data.
 type Test struct {
 	// DbPosition is an index into the Data.Relational array.
