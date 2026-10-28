@@ -259,6 +259,26 @@ type HttpServer struct {
 	CheckCORF *PreventCORF `json:"check_corf"`
 }
 
+func (srv *HttpServer) UnmarshalJSON(data []byte) error {
+	type alias HttpServer
+	suggested := &alias{
+		Port:           "8433",
+		TimeoutHeaders: 5,
+		TimeoutRead:    10,
+		TimeoutWrite:   10,
+		TimeoutIdle:    5,
+		StaticDir:      "",
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*srv = HttpServer(*suggested)
+	return nil
+}
+
 // Health configures the thresholds for various healthchecks.
 type Health struct {
 	// PingDbTimer is the amount of seconds between each Postgres ping.
