@@ -343,6 +343,27 @@ type Metrics struct {
 	Process bool `json:"process"`
 }
 
+func (m *Metrics) UnmarshalJSON(data []byte) error {
+	type alias Metrics
+	suggested := &alias{
+		Memory:            true,
+		GarbageCollection: true,
+
+		Scheduler: false,
+		Cpu:       false,
+		Lock:      false,
+		Process:   false,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*m = Metrics(*suggested)
+	return nil
+}
+
 // Cache currently represents a Redis server.
 type Cache struct {
 	Host    string `json:"host"`
