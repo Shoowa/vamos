@@ -70,6 +70,21 @@ type Logger struct {
 	Debug bool `json:"debug"`
 }
 
+func (l *Logger) UnmarshalJSON(data []byte) error {
+	type alias Logger
+	suggested := &alias{
+		Debug: false,
+	}
+
+	err := json.Unmarshal(data, suggested)
+	if err != nil {
+		return err
+	}
+
+	*l = Logger(*suggested)
+	return nil
+}
+
 // Secrets is currently oriented toward Openbao.
 type Secrets struct {
 	// An Openbao struct containing a TlsSecret struct.
