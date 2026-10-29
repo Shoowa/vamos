@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -14,29 +12,14 @@ var AppVersion string
 
 // Read from either the dev or prod file.
 func Read() *Config {
-	eFile := "config/prod.json"
-	if os.Getenv("APP_ENV") == "DEV" {
-		eFile = "config/dev.json"
+	eFile, present := os.LookupEnv("VAMOS_CONFIG")
+	if !present {
+		panic("missing config file")
 	}
 
 	jsonFile, errFile := os.ReadFile(eFile)
 	if errFile != nil {
-		dirName := os.Getenv("PROJECT_NAME")
-		if dirName != "" {
-			os.Setenv("APP_ENV", "DEV")
-			wd, _ := os.Getwd()
-			for !strings.HasSuffix(wd, dirName) {
-				wd = filepath.Dir(wd)
-			}
-			chdirErr := os.Chdir(wd)
-			if chdirErr != nil {
-				panic(chdirErr.Error())
-			}
-			jsonFile, errFile = os.ReadFile("config/dev.json")
-		}
-		if errFile != nil {
-			panic("No config file!")
-		}
+		panic(errFile.Error())
 	}
 
 	var config Config
