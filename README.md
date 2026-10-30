@@ -11,26 +11,48 @@ A corporate development team can deploy a prototype into a production
 environment as a micro-service and expect operational maturity. _Vamos_ hastens
 development and eases operation.
 
-
 ## Quick Start
-Provide the application a config file named _dev.json_ or _prod.json_ in the
-_config_ directory. View the *_example/config/dev.json*. The file is concerned
-with the following:
+To develop Vamos, first launch a virtual machine, then the external dependencies
+inside the VM, then configure a database in Postgres, then run the basic tests.
+Vamos will be usable.
+```bash
+~/vamos $ make podman_create_vm
+~/vamos $ podman machine ssh dev_vamos systemctl --user start dev_openbao openbao_add_pki dev_postgres_with_gis
+~/vamos $ psql -h localhost -U postgres -f _example/testdata/setup_db1.sql
+~/vamos $ go test ./... -count=1 -tags=integration
+~/vamos $ make podman_delete_vm
+```
+
+The same development environment can be re-used to develop an application that
+imports Vamos.
+```bash
+~/your_app $ go mod init your_app
+~/your_app $ go mod tidy
+~/your_app $ go build -v -ldflags="-s -X 'github.com/Shoowa/vamos/config.AppVersion=v.0.1.0'"
+~/your_app $ VAMOS_CONFIG=config/dev.json OPENBAO_TOKEN=token ./app &
+```
+
+Provide the application a config file identified by the environ variable named
+VAMOS_CONFIG. View the *_example/config/dev.json*. The file is concerned with
+the following:
 1. The location of the server guarding secrets.
     - Local file paths to read x509 cert & key, & intermediate CA.
 2. The location of a Postgres instance and its sensitive credential.
-3. Fake data to provide to Postgres for development & testing.
-4. Server details, e.g., host, port, timeouts.
+3. Server details, e.g., host, port, timeouts.
     - TLS config as server
     - TLS config as client
     - Optional rate limiter
     - Optional static files
-5. Health evaluations.
-6. Logging level.
-7. Toggling of metrics.
-8. Location of a Redis server.
+4. Health evaluations.
+5. Logging level.
+6. Toggling of metrics.
+7. Location of a Redis server.
     - Openbao HTTP endpoint & JSON key for password.
-9. Fake data for a local Postgres server.
+8. Optional HTTP client with a rate limiter.
+
+Many of the sructs inside _Config_ provide default values via the
+_UnmarshalJSON_ method. Fields defined in a config file will re-write those
+values when present.
 
 #### Sequence of Database List
 Notice _data.relational_ in *_example/config/dev.json* is an array. The sequence
@@ -95,7 +117,7 @@ token for secrets storage.
 # Start the Dev Environment with the included makefile. See next section.
 ~/your_app $ go env -w GOEXPERIMENT=greenteagc
 ~/your_app $ go build -v -ldflags="-s -X 'github.com/Shoowa/vamos/config.AppVersion=v.0.0.0' " -o yourapp
-~/your_app $ APP_ENV=DEV OPENBAO_TOKEN=token ./yourapp
+~/your_app $ VAMOS_CONFIG=config/dev.json OPENBAO_TOKEN=token ./yourapp
 ```
 
 ## Development Environment
@@ -182,8 +204,7 @@ Change the password archived in Openbao as much as you want.
 ```
 
 ### Postgres Database
-A container image of Postgres 18 Beta is preferred for the native _UUIDv7_
-feature. How is a container obtained and managed by _podman_ in this development
+How is a container obtained and managed by _podman_ in this development
 environment?
 
 A special *.container* file is read from a user directory named
@@ -239,8 +260,9 @@ To launch the Postgres development instance, simply ssh into the _podman_
 virtual machine and order _systemD_ to start the service. Logs can be viewed via
 _journalD_.
 ```bash
-~/ $ podman machine ssh dev_vamos "systemctl --user start dev_postgres"
-~/ $ podman machine ssh dev_vamos "journalctl --user -u dev_postgres"
+~/ $ podman machine ssh dev_vamos "systemctl --user start dev_openbao dev_postgres_with_gis"
+~/ $ podman machine ssh dev_vamos "journalctl --user -b CONTAINER_NAME=openbao"
+~/ $ podman machine ssh dev_vamos "journalctl --user -b CONTAINER_NAME=geo_postgres"
 ```
 The extension _.service_ is excluded from the commands for brevity.
 
@@ -871,11 +893,11 @@ truth. One less dependency in the application. Below is an example of a testing
 function residing in _testhelper.go_.
 ```go
 // testhelper/testhelper.go
-func Equals(tb testing.TB, exp, act any) {
-	if !reflect.DeepEqual(exp, act) {
-		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
-		tb.FailNow()
+func Equal[T any](t *testing.T, actual, expectation T) {
+	t.Helper()
+
+	if !isEqual(actual, expectation) {
+		t.Errorf("actual: %v; expectation: %v", actual, expectation)
 	}
 }
 ```
@@ -896,7 +918,7 @@ import (
 func Test_Configuration(t *testing.T) {
     // abbreviated for clarity...
 
-    Equals(t, "token", openbao.Token)
+    Equal(t, "token", openbao.Token)
 }
 ```
 Notice _secrets_test_ is a separate package from the package _secrets_. All the
@@ -947,26 +969,23 @@ import (
 
 func TestMain(m *testing.M) {
 	// Enable reading the configuration file.
-	os.Setenv("APP_ENV", "DEV")
+	os.Setenv("VAMOS_CONFIG", "../config/dev.json")
 
 	// Enable reading credentials from the Openbao server.
 	os.Setenv("OPENBAO_TOKEN", "token")
-
-	// Point the test-executable to the configuration file.
-	Change_to_project_root()
 
 	// Connect to the local database before any tests run. Notice this uses the
 	// package variable defined above. It will be re-used in the tests.
 	testDB = ConnectDB()
 	testDB.SetTimer(2)
 
-	// Erase e-vars, so that test runs can change it.
-	os.Unsetenv("APP_ENV")
-	os.Unsetenv("OPENBAO_TOKEN")
-
 	code := m.Run()
 
     // After the tests run, add code here.
+    testDB.CloseConnection()
+
+	os.Unsetenv("VAMOS_CONFIG")
+	os.Unsetenv("OPENBAO_TOKEN")
 
 	os.Exit(code)
 }
@@ -977,8 +996,6 @@ test runs concurrently in this moment. The environment inside the test is
 adjusted to induce reading configuration data for the _development_ environment.
 ```go
 func Test_ConnectDB(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
 	cfg := config.Read()
 	db, dbErr := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
 	Ok(t, dbErr)
@@ -992,7 +1009,7 @@ same test group. The final action of the test group is to close the connection
 pool.
 ```go
 func Test_ReadingData(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
+	t.Setenv("VAMOS_CONFIG", "../config/dev.json")
 	t.Setenv("OPENBAO_TOKEN", "token")
 	testDB.WriteAndDeleteData(t, "add_table_data.sql", "erase_table_data.sql")
 
@@ -1171,21 +1188,21 @@ would immediately un-block and _main()_ would immediately return.
 Two environmental variables are needed by the application to read a
 configuration file and access storage of sensitive credentials.
 ```bash
-~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+~/vamos $ VAMOS_CONFIG=config/dev.json OPENBAO_TOKEN=token ./vamos
 ```
 
 ### Rate Limiting
 A simple Token Bucket rate limiter from the official external library can be
 activated in the _config_ file. Toggle the field *global_rate_limiter_ to *true*
-and define the amount of tokens refilled per second in the _average_ field, and
-define the amount spent per second in the _burst_ field.
+and define the amount of tokens refilled per window in the _amount field_.
 ```json
 {
     "httpserver": {
         "global_rate_limiter": {
-            "active" : true,
-            "average" : 100,
-            "burst" : 200
+            "active": true,
+            "window": 5,
+            "amount": 10,
+            "burst": 10
         },
         "port": "8443",
         "timeout_read": 5,
@@ -1302,12 +1319,9 @@ func CreateLogger(cfg *config.Config) *slog.Logger {
 
 This can be observed during startup.
 ```bash
-~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+~/vamos $ VAMOS_CONFIG=config/dev.json OPENBAO_TOKEN=token ./vamos
 {"time":"2025-07-24T13:05:01.477738-04:00","level":"INFO","msg":"Begin logging","version":{"lang":"go1.24.0","app":"v.0.0.0"},"level":"DEBUG"}
 ```
-When skipping the APP_ENV e-var, the app will deploy under production
-conditions represented in _config/prod.json_.
-
 
 ### Logging Middleware
 The middleware is configured in _router/middleware.go_ as a closure that passes
@@ -1381,7 +1395,7 @@ func NewRouter(dependencies Gatherer) http.Handler {
 
 Then every incoming request is logged in a standard manner.
 ```bash
-~/vamos $ APP_ENV=DEV OPENBAO_TOKEN=token ./vamos
+~/vamos $ VAMOS_CONFIG=config/dev.json OPENBAO_TOKEN=token ./vamos
 # skipping other logs...
 {"time":"2025-08-05T16:45:17.23609-04:00","level":"INFO","msg":"Inbound","version":{"lang":"go1.24.0","app":"v.0.0.0"},"server":{"method":"GET","path":"/health","uagent":"HTTPie/3.2.4"}}
 ```

@@ -23,48 +23,45 @@ const (
 )
 
 // Define a package variable that can be used during the setup of the test
-// suite, and in each test.
+// suite, and in each test. This is a single connection to a Postgres server,
+// unlike the application's connection pool.
 var (
 	testDB *DbHandle
 )
 
 func TestMain(m *testing.M) {
 	// Enable reading the configuration file.
-	os.Setenv("APP_ENV", "DEV")
+	os.Setenv("VAMOS_CONFIG", "../config/dev.json")
 
 	// Enable reading credentials from the Openbao server.
 	os.Setenv("OPENBAO_TOKEN", "token")
-
-	// Point the test-executable to the configuration file.
-	Change_to_project_root()
 
 	// Connect to the local database before any tests run. Notice this uses the
 	// package variable defined above. It will be re-used in the tests.
 	testDB = ConnectDB()
 	testDB.SetTimer(2)
 
-	// Erase e-vars, so that test runs can change it.
-	os.Unsetenv("APP_ENV")
-	os.Unsetenv("OPENBAO_TOKEN")
-
 	code := m.Run()
+
+	testDB.CloseConnection()
+	os.Unsetenv("VAMOS_CONFIG")
+	os.Unsetenv("OPENBAO_TOKEN")
 	os.Exit(code)
 }
 
 // First, test opening a connection to a database.
 func Test_ConnectDB(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
 	cfg := config.Read()
 	db, dbErr := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
 	Ok(t, dbErr)
 	t.Cleanup(func() { db.Close() })
 }
 
-// Second, test reading data concurrently.
+// Second, test reading data concurrently. Notice it uses two different database
+// handles. The first is the single connection that adds data to the table. The
+// second is the connection pool associated with the application that the HTTP
+// Handlers will use.
 func Test_ReadingData(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
 	testDB.WriteAndDeleteData(t, "add_table_data.sql", "erase_table_data.sql")
 
 	cfg := config.Read()
