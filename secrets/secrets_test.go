@@ -10,17 +10,33 @@ import (
 	. "github.com/Shoowa/vamos/testhelper"
 )
 
+const (
+	DIR_ABOVE = "../"
+)
+
+var (
+	cfg *config.Config
+)
+
 func TestMain(m *testing.M) {
-	Change_to_project_root()
+	os.Setenv("VAMOS_CONFIG", "../config/dev.json")
+	os.Setenv("OPENBAO_TOKEN", "token")
+	cfg = config.Read()
+
+	// test executable needs a different relative path
+	tls := cfg.Secrets.Openbao.TlsClient
+	tls.CaPath = DIR_ABOVE + tls.CaPath
+	tls.CertPath = DIR_ABOVE + tls.CertPath
+	tls.KeyPath = DIR_ABOVE + tls.KeyPath
+
 	code := m.Run()
+
+	os.Unsetenv("VAMOS_CONFIG")
+	os.Unsetenv("OPENBAO_TOKEN")
 	os.Exit(code)
 }
 
 func Test_SkeletonKeyOpenbao(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 

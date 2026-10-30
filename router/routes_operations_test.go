@@ -11,15 +11,17 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	Change_to_project_root()
+	os.Setenv("VAMOS_CONFIG", "../config/dev.json")
+	os.Setenv("OPENBAO_TOKEN", "token")
+
 	code := m.Run()
+
+	os.Unsetenv("VAMOS_CONFIG")
+	os.Unsetenv("OPENBAO_TOKEN")
 	os.Exit(code)
 }
 
 func Test_Healthcheck_Initial_One_Resource_Down(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
 	srv := CreateTestServer(t)
 
 	code, _, _ := srv.Get(t, "/health")

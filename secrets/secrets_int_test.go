@@ -5,7 +5,6 @@ package secrets_test
 import (
 	"testing"
 
-	"github.com/Shoowa/vamos/config"
 	. "github.com/Shoowa/vamos/secrets"
 	. "github.com/Shoowa/vamos/testhelper"
 )
@@ -17,10 +16,6 @@ const (
 )
 
 func Test_PostgresPassword(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	db := cfg.Data.Relational[0]
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
@@ -32,10 +27,6 @@ func Test_PostgresPassword(t *testing.T) {
 }
 
 func Test_ReadValueFromOpenbao(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 
@@ -46,10 +37,6 @@ func Test_ReadValueFromOpenbao(t *testing.T) {
 }
 
 func Test_ReadIntermediateCA(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 
@@ -58,10 +45,6 @@ func Test_ReadIntermediateCA(t *testing.T) {
 }
 
 func Test_CreateCertPool(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 
@@ -70,10 +53,6 @@ func Test_CreateCertPool(t *testing.T) {
 }
 
 func Test_CreateTLSwithCA(t *testing.T) {
-	t.Setenv("APP_ENV", "DEV")
-	t.Setenv("OPENBAO_TOKEN", "token")
-
-	cfg := config.Read()
 	sk := new(SkeletonKey)
 	sk.Create(cfg)
 

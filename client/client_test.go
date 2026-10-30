@@ -22,6 +22,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	os.Setenv("VAMOS_CONFIG", "../config/dev.json")
+	os.Setenv("OPENBAO_TOKEN", "token")
+
 	// Erect custom http.Client before tests run. Re-define rate limiting so the
 	// tests aren't influenced by the config file.
 	cfg := config.Read()
@@ -35,6 +38,9 @@ func TestMain(m *testing.M) {
 
 	// Execute tests.
 	code := m.Run()
+
+	os.Unsetenv("VAMOS_CONFIG")
+	os.Unsetenv("OPENBAO_TOKEN")
 
 	// Report results.
 	os.Exit(code)

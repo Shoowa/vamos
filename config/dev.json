@@ -8,10 +8,10 @@
     "secrets": {
         "openbao": {
             "tls_client": {
-                "ca_path": "/path/to/intermediate_ca.pem",
-                "cert_path": "/path/to/cert.pem",
+                "ca_path": "../../podman_vm/ca/root/ca.pem",
+                "cert_path": "../../podman_vm/ca/public/app_client.pem",
                 "cert_field": "",
-                "key_path": "/path/to/key.pem",
+                "key_path": "../../podman_vm/ca/private/app_client-key.pem",
                 "key_field": ""
             },
             "scheme": "https",
