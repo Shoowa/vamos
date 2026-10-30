@@ -48,9 +48,10 @@
         "secret_ca": "intermediate-ca",
         "secret_ca_key": "int_ca",
         "global_rate_limiter": {
-            "active" : true,
-            "average" : 100,
-            "burst" : 300
+            "active": true,
+            "window": 1,
+            "amount": 20,
+            "burst": 20
         },
         "check_corf": {
             "active": false,
@@ -59,7 +60,8 @@
         },
         "static_dir": "./ui/static/",
         "port": "8443",
-        "timeout_read": 5,
+        "timeout_headers": 5,
+        "timeout_read": 10,
         "timeout_write": 10,
         "timeout_idle": 5
     },
