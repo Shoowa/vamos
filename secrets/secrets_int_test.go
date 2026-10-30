@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	PASSWORD     = "OpenBao123"
+	PASSWORD     = "password"
 	REDIS_SECRET = "dev-redis-test"
-	REDIS_PW     = "ReDiS4LiFe"
+	REDIS_PW     = "redis4life"
 )
 
 func Test_PostgresPassword(t *testing.T) {
