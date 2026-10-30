@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -123,20 +121,6 @@ func ErrorAs(t *testing.T, actual error, target any) {
 
 	if !errors.As(actual, target) {
 		t.Errorf("actual: %v; expectation assignable to: %T", actual, target)
-	}
-}
-
-// Change_to_project_root repositions a test executable's starting point so it
-// can find the config file.
-func Change_to_project_root() {
-	dirName := os.Getenv("PROJECT_NAME")
-	wd, _ := os.Getwd()
-	for !strings.HasSuffix(wd, dirName) {
-		wd = filepath.Dir(wd)
-	}
-	changeErr := os.Chdir(wd)
-	if changeErr != nil {
-		panic(changeErr)
 	}
 }
 
