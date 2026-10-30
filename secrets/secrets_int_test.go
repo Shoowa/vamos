@@ -23,7 +23,7 @@ func Test_PostgresPassword(t *testing.T) {
 	pw, pwErr := sk.ReadPathAndKey(db.Secret, db.SecretKey)
 
 	Ok(t, pwErr)
-	Equals(t, PASSWORD, pw)
+	Equal(t, PASSWORD, pw)
 }
 
 func Test_ReadValueFromOpenbao(t *testing.T) {
@@ -33,7 +33,7 @@ func Test_ReadValueFromOpenbao(t *testing.T) {
 	val, err := sk.ReadPathAndKey(REDIS_SECRET, cfg.Cache.SecretKey)
 
 	Ok(t, err)
-	Equals(t, REDIS_PW, val)
+	Equal(t, REDIS_PW, val)
 }
 
 func Test_ReadIntermediateCA(t *testing.T) {
@@ -58,5 +58,5 @@ func Test_CreateTLSwithCA(t *testing.T) {
 
 	tlsConfig, err := sk.ConfigureTLSwithCA(cfg.HttpServer)
 	Ok(t, err)
-	Equals(t, 1, len(tlsConfig.Certificates))
+	Equal(t, 1, len(tlsConfig.Certificates))
 }

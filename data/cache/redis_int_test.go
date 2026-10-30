@@ -50,7 +50,7 @@ func Test_ConnectCache(t *testing.T) {
 	pong, pErr := cache.Ping(ctx).Result()
 	Ok(t, pErr)
 
-	Equals(t, "PONG", pong)
+	Equal(t, "PONG", pong)
 
 	t.Cleanup(func() { cache.Close() })
 }

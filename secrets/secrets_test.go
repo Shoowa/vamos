@@ -42,6 +42,6 @@ func Test_SkeletonKeyOpenbao(t *testing.T) {
 
 	addr := sk.Openbao.Address()
 	tok := sk.Openbao.Token()
-	Assert(t, strings.Contains(addr, "localhost"), "Lacks localhost in host address.")
-	Assert(t, strings.Contains(tok, "token"), "Lacks token from environment.")
+	True(t, strings.Contains(addr, "localhost"))
+	True(t, strings.Contains(tok, "token"))
 }

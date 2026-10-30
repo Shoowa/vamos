@@ -25,6 +25,6 @@ func Test_Healthcheck_Initial_One_Resource_Down(t *testing.T) {
 	srv := CreateTestServer(t)
 
 	code, _, _ := srv.Get(t, "/health")
-	Equals(t, http.StatusServiceUnavailable, code)
+	Equal(t, http.StatusServiceUnavailable, code)
 	t.Cleanup(func() { srv.Close() })
 }
