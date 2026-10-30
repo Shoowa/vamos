@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/Shoowa/vamos/config"
-	. "github.com/Shoowa/vamos/data/rdbms"
+	"github.com/Shoowa/vamos/data/rdbms"
 	. "github.com/Shoowa/vamos/testhelper"
 )
 
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 
 // First, test opening a connection to a database.
 func Test_ConnectDB(t *testing.T) {
-	db, dbErr := ConnectDB(cfg, cfg.Test.DbPosition)
+	db, dbErr := rdbms.ConnectDB(cfg, cfg.Test.DbPosition)
 	Ok(t, dbErr)
 	t.Cleanup(func() { db.Close() })
 }
