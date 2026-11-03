@@ -10,7 +10,7 @@ import (
 )
 
 func CreateRateLimiter(cfg *config.RateLimiter) *rate.Limiter {
-	window := time.Second / cfg.Window
+	window := time.Second * cfg.Window
 	limit := rate.Every(window / cfg.Amount)
 	return rate.NewLimiter(limit, cfg.Burst)
 }
