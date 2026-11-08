@@ -4,12 +4,27 @@ package metrics
 import (
 	"net/http"
 	"regexp"
+	"testing"
 
 	"github.com/Shoowa/vamos/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+var (
+	Registry *prometheus.Registry
+)
+
+func init() {
+	// A test executable needs to skip auto-config.
+	if testing.Testing() {
+		return
+	}
+
+	// Auto-config during development and deployment.
+	Registry = CreateLoadedRegistry(config.Cfg.Metrics)
+}
 
 // listOfMetrics returns gauges and counters defined in the library.
 func listOfMetrics() []prometheus.Collector {
@@ -55,12 +70,8 @@ func addRuntimeMetrics(toggles *config.Metrics) prometheus.Collector {
 	return collectors.NewGoCollector(noOldMemStats, rules)
 }
 
-// createLoadedRegistry reads the config file directly, breaking the convention
-// of accepting a config struct from the main function. I chose to do this,
-// because the custom registry is a package variable. And it is much easier to
-// add metrics to a package variable.
-func createLoadedRegistry() *prometheus.Registry {
-	toggles := config.Read().Metrics
+// CreateLoadedRegistry accepts a config and creates a registry.
+func CreateLoadedRegistry(toggles *config.Metrics) *prometheus.Registry {
 	runtimeCollector := addRuntimeMetrics(toggles)
 
 	reg := prometheus.NewRegistry()
@@ -81,11 +92,9 @@ func createLoadedRegistry() *prometheus.Registry {
 	return reg
 }
 
-var registry = createLoadedRegistry()
-
 func CreateHandler() http.Handler {
 	options := promhttp.HandlerOpts{}
-	metricsHandler := promhttp.HandlerFor(registry, options)
+	metricsHandler := promhttp.HandlerFor(Registry, options)
 	return metricsHandler
 }
 
