@@ -76,18 +76,27 @@ func CreateLoadedRegistry(toggles *config.Metrics) *prometheus.Registry {
 
 	reg := prometheus.NewRegistry()
 	if runtimeCollector != nil {
-		reg.MustRegister(runtimeCollector)
+		err := reg.Register(runtimeCollector)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	if toggles.Process {
 		opt := collectors.ProcessCollectorOpts{}
 		p := collectors.NewProcessCollector(opt)
-		reg.MustRegister(p)
+		err := reg.Register(p)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
 	metrics := listOfMetrics()
 	for _, m := range metrics {
-		reg.MustRegister(m)
+		err := reg.Register(m)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 	return reg
 }
@@ -129,7 +138,10 @@ func CreateCounter(name string, help string) prometheus.Counter {
 	}
 
 	counter := prometheus.NewCounter(opts)
-	registry.MustRegister(counter)
+	err := Registry.Register(counter)
+	if err != nil {
+		panic(err.Error())
+	}
 	return counter
 }
 
@@ -143,7 +155,10 @@ func CreateGauge(ns, ss, name, help string) prometheus.Gauge {
 	}
 
 	gauge := prometheus.NewGauge(opts)
-	registry.MustRegister(gauge)
+	err := Registry.Register(gauge)
+	if err != nil {
+		panic(err.Error())
+	}
 	return gauge
 }
 
@@ -158,7 +173,10 @@ func CreateHistogram(ns, ss, name, help string, buckets []float64) prometheus.Hi
 	}
 
 	histogram := prometheus.NewHistogram(opts)
-	registry.MustRegister(histogram)
+	err := Registry.Register(histogram)
+	if err != nil {
+		panic(err.Error())
+	}
 	return histogram
 }
 
@@ -173,7 +191,10 @@ func CreateSummary(ns, ss, name, help string, obj map[float64]float64) prometheu
 	}
 
 	sum := prometheus.NewSummary(opts)
-	registry.MustRegister(sum)
+	err := Registry.Register(sum)
+	if err != nil {
+		panic(err.Error())
+	}
 	return sum
 }
 
