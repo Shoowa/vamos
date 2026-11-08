@@ -4,11 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"testing"
 	"time"
 )
 
 // AppVersion can be defined during the build command. It will appear in logs.
 var AppVersion string
+
+var Cfg *Config
+
+func init() {
+	// A test executable needs to skip the auto-config.
+	if testing.Testing() {
+		return
+	}
+
+	// Auto-config when developing and deploying.
+	Cfg = Read()
+}
 
 // Read from either the dev or prod file.
 func Read() *Config {
