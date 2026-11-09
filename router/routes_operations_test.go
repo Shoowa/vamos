@@ -101,6 +101,7 @@ func (tc *testClient) GET(t *testing.T, path string) testResponse {
 	if bErr != nil {
 		t.Fatal(bErr)
 	}
+	defer resp.Body.Close()
 	body = bytes.TrimSpace(body)
 	return testResponse{
 		status: resp.StatusCode,
