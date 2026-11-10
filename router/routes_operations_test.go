@@ -10,7 +10,9 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Shoowa/vamos/config"
 	"github.com/Shoowa/vamos/data/cache"
@@ -28,6 +30,8 @@ const (
 var (
 	server *testServer
 	client *testClient
+
+	testAmount int
 )
 
 type testServer struct {
@@ -122,6 +126,10 @@ func TestMain(m *testing.M) {
 	tls.CertPath = DIR_ABOVE + tls.CertPath
 	tls.KeyPath = DIR_ABOVE + tls.KeyPath
 
+	testAmount = 5
+	cfg.HttpServer.GlobalRateLimiter.Amount = time.Duration(testAmount)
+	cfg.HttpServer.GlobalRateLimiter.Burst = testAmount
+
 	server = createTestServer(cfg)
 	client = server.createClient()
 
@@ -136,4 +144,24 @@ func TestMain(m *testing.M) {
 func Test_Healthcheck_Good(t *testing.T) {
 	resp := client.GET(t, "/health")
 	Equal(t, resp.status, http.StatusNoContent)
+}
+
+func Test_RateLimit(t *testing.T) {
+	resp := client.GET(t, "/health")
+	limit := resp.header.Get(router.HEADER_RATE_LIMIT)
+	remaining := resp.header.Get(router.HEADER_RATE_REMAINING)
+
+	Equal(t, limit, strconv.Itoa(testAmount))
+	Equal(t, remaining, strconv.Itoa(testAmount-1))
+	NotEqual(t, resp.status, http.StatusTooManyRequests)
+
+	for _ = range testAmount * 2 {
+		resp = client.GET(t, "/health")
+		if resp.status != http.StatusNoContent {
+			break
+		}
+	}
+	remaining = resp.header.Get(router.HEADER_RATE_REMAINING)
+	Equal(t, remaining, "0")
+	Equal(t, resp.status, http.StatusTooManyRequests)
 }
