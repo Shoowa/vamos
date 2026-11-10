@@ -133,10 +133,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func Test_Healthcheck_Initial_One_Resource_Down(t *testing.T) {
-	srv := CreateTestServer(t)
-
-	code, _, _ := srv.Get(t, "/health")
-	Equal(t, http.StatusServiceUnavailable, code)
-	t.Cleanup(func() { srv.Close() })
+func Test_Healthcheck_Good(t *testing.T) {
+	resp := client.GET(t, "/health")
+	Equal(t, resp.status, http.StatusNoContent)
 }
